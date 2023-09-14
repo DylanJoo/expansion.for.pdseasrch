@@ -19,7 +19,15 @@ While some of our prepreocessed dataset can be found at this [huggingface hub](h
 
 ### Baselines
 
-### Method
+### Text-to-text Method
+1. Convert [product-search-train.qrels](#) into a jsonl file.
+```
+python text2text/convert_qrel_to_seq2seq.py \
+    --collection data/corpus.jsonl \
+    --query data/qid2query.tsv \
+    --qrel data/product-search-train.qrels \
+    --output data/trec-pds.train.product2query.jsonl
+```
 
 ---
 ### References:
