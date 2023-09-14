@@ -10,6 +10,7 @@ class ModelArgs:
     config_name: Optional[str] = field(default=None)
     tokenizer_name: Optional[str] = field(default=None)
     use_fast_tokenizer: bool = field(default=True)
+    datacollator: str = field(default='product2query')
 
 @dataclass
 class DataArgs:

@@ -1,6 +1,6 @@
 # export CUDA_VISIBLE_DEVICES=2
 
-python3 ../text2text/train.py \
+python3 text2text/train.py \
     --model_name_or_path t5-base \
     --config_name t5-base \
     --tokenizer_name t5-base \
@@ -19,5 +19,6 @@ python3 ../text2text/train.py \
     --optim adafactor \
     --learning_rate 1e-4 \
     --lr_scheduler_type constant \
+    --report_to wandb \
     --template "summarize: title: {0} description: {1}"
 

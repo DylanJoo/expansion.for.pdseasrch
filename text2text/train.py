@@ -24,13 +24,6 @@ def main():
     tokenizer = AutoTokenizer.from_pretrained(model_args.tokenizer_name)
     model = T5ForConditionalGeneration.from_pretrained(model_args.model_name_or_path)
     
-    datacollator_classes = {"product2query": DataCollator.Product2Query}
-    data_collator = datacollator_classes[key](
-            tokenizer=tokenizer,
-            max_src_length=data_args.max_src_length,
-            max_tgt_length=data_args.max_tgt_length,
-            template=training_args.template
-    )
 
     # Data: dataset
     dataset = load_dataset('json', data_files=data_args.train_file)['train']
@@ -42,6 +35,15 @@ def main():
             train_dataset=dataset['train'],
             eval_dataset=dataset['test'],
             data_collator=data_collator,
+    )
+
+    # Data: collator
+    datacollator_classes = {"product2query": datacollator.Product2Query}
+    data_collator = datacollator_classes[model_args.datacollator](
+            tokenizer=tokenizer,
+            max_src_length=data_args.max_src_length,
+            max_tgt_length=data_args.max_tgt_length,
+            template=training_args.template
     )
     
     # ***** strat training *****
