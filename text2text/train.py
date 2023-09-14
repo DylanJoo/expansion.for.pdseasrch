@@ -8,7 +8,9 @@ from transformers import (
     AutoConfig
 )
 from arguments import ModelArgs, DataArgs, TrainArgs
-
+from datasets import load_dataset
+from transformers import Seq2SeqTrainer
+import datacollator 
 
 def main():
     parser = HfArgumentParser((ModelArgs, DataArgs, TrainArgs))
@@ -22,33 +24,23 @@ def main():
     tokenizer = AutoTokenizer.from_pretrained(model_args.tokenizer_name)
     model = T5ForConditionalGeneration.from_pretrained(model_args.model_name_or_path)
     
-    from datacollator import DataCollatorForDesc2Title, DataCollatorForProduct2Query
-    datacollator_class_map = {
-            "desc2title": DataCollatorForDesc2Title,
-            "product2query": DataCollatorForProduct2Query
-    }
-    for key in datacollator_class_map:
-        if key in training_args.output_dir:
-            data_collator = datacollator_class_map[key](
-                    tokenizer=tokenizer,
-                    max_src_length=data_args.max_src_length,
-                    max_tgt_length=data_args.max_tgt_length,
-            )
+    datacollator_classes = {"product2query": DataCollator.Product2Query}
+    data_collator = datacollator_classes[key](
+            tokenizer=tokenizer,
+            max_src_length=data_args.max_src_length,
+            max_tgt_length=data_args.max_tgt_length,
+            template=training_args.template
+    )
 
     # Data: dataset
-    from datasets import load_dataset
-    dataset = load_dataset(
-            'json', data_files=data_args.train_file
-    )['train'].train_test_split(test_size=0.0001)
-    dataset_train = dataset['train']
-    dataset_eval = dataset['test']
+    dataset = load_dataset('json', data_files=data_args.train_file)['train']
+    dataset = dataset.train_test_split(test_size=3000, sed=777)
 
-    from transformers import Seq2SeqTrainer
     trainer = Seq2SeqTrainer(
             model=model, 
             args=training_args,
-            train_dataset=dataset_train,
-            eval_dataset=dataset_eval,
+            train_dataset=dataset['train'],
+            eval_dataset=dataset['test'],
             data_collator=data_collator,
     )
     

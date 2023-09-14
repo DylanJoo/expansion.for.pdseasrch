@@ -26,6 +26,4 @@ class TrainArgs(Seq2SeqTrainingArguments):
     save_steps: int = field(default=5000)
     eval_steps: int = field(default=2500)
     evaluation_strategy: Optional[str] = field(default='steps')
-    per_device_train_batch_size: int = field(default=2)
-    per_device_eval_batch_size: int = field(default=2)
-    learning_rate: Union[float] = field(default=1e-5)
+    template: Optional[str] = field(default="{0} {1}")
