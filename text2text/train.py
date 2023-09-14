@@ -27,15 +27,8 @@ def main():
 
     # Data: dataset
     dataset = load_dataset('json', data_files=data_args.train_file)['train']
-    dataset = dataset.train_test_split(test_size=3000, sed=777)
-
-    trainer = Seq2SeqTrainer(
-            model=model, 
-            args=training_args,
-            train_dataset=dataset['train'],
-            eval_dataset=dataset['test'],
-            data_collator=data_collator,
-    )
+    dataset = dataset.train_test_split(test_size=3000, seed=777)
+    print(dataset)
 
     # Data: collator
     datacollator_classes = {"product2query": datacollator.Product2Query}
@@ -46,6 +39,14 @@ def main():
             template=training_args.template
     )
     
+    trainer = Seq2SeqTrainer(
+            model=model, 
+            args=training_args,
+            train_dataset=dataset['train'],
+            eval_dataset=dataset['test'],
+            data_collator=data_collator,
+    )
+
     # ***** strat training *****
     results = trainer.train(
             resume_from_checkpoint=training_args.resume_from_checkpoint
