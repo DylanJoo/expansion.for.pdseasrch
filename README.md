@@ -4,9 +4,30 @@ This project is aiming at enhancing product representation using contents in pro
 Retrieval methods will based on the sparse retrieval and learned sparse retrieval.
 
 ---
+### Dataset
+We used the dataset collected by TREC Prodcut Search Track. 
+Each files we used are stored at [product-search huggingface](https://huggingface.co/trec-product-search). 
+
+We put all the downloaded files in the directory [data](/data).  It will contain
+1. corpus.jsonl [huggingface hub](https://huggingface.co/datasets/trec-product-search/product-search-corpus/blob/main/data/jsonl/corpus.jsonl.gz)
+2. qid2query.tsv [huggingface hub](https://huggingface.co/datasets/trec-product-search/product-search-corpus/blob/main/data/qid2query.tsv)
+3. product-search-train-qrels [huggingface hub](https://huggingface.co/datasets/trec-product-search/Product-Search-Qrels-v0.1/blob/main/data/train/product-search-train.qrels.gz)
+4. TBA
+
+While some of our prepreocessed dataset can be found at this [huggingface hub](https://huggingface.co/datasets/DylanJHJ/pds2023/tree/main)
+1. TBA
+
 ### Baselines
 
-### Method
+### Text-to-text Method
+1. Convert [product-search-train.qrels](#) into a jsonl file.
+```
+python text2text/convert_qrel_to_seq2seq.py \
+    --collection data/corpus.jsonl \
+    --query data/qid2query.tsv \
+    --qrel data/product-search-train.qrels \
+    --output data/trec-pds.train.product2query.jsonl
+```
 
 ---
 ### References:
