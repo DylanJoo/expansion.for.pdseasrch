@@ -1,2 +1,3 @@
+data/corpus.jsonl
 data/product-search-train.qrels
 data/trec-pds.train.product2query.jsonl

@@ -18,7 +18,7 @@ def load_corpus(path='data/corpus.jsonl', append=False, key='title'):
         for line in tqdm(f):
             item = json.loads(line.strip())
             docid = item.pop('doc_id')
-            data[docid] = {
+            data[str(docid)] = {
                     'title': item['title'],
                     'description': item['description']
             }
@@ -47,7 +47,7 @@ if __name__ == '__main__':
     parser.add_argument("--qrels", type=str, default='sample.qrels')
     parser.add_argument("--query", type=str, default='query.tsv')
     parser.add_argument("--collection", type=str, default='sample.jsonl')
-    parser.add_argument("--output", type=str, default='trec-pds.train.product2query.jsonl')
+    parser.add_argument("--output", type=str, default='data/trec-pds.train.product2query.jsonl')
     args = parser.parse_args()
 
     # load data
@@ -56,14 +56,16 @@ if __name__ == '__main__':
     corpus = load_corpus(args.collection)
     print('load corpus: done')
     pqrels, _ = load_qrels(args.qrels, 2)
-    print('load qrels: done')
+    print('load qrels: done') # only used positive ones.
 
     with open(args.output, 'w') as fout:
         for qid in tqdm(pqrels, total=len(pqrels)):
             for docid in pqrels[qid]:
-                fout.write(json.dumps({
-                    "query": queries[qid],
-                    "title": corpus[docid]['title'],
-                    "description": corpus[docid]['description'],
-                }, ensure_ascii=False)+'\n')
+                example = {'query': queries[qid]}
+                try:
+                    example['title'] = corpus[docid]['title']
+                    example['description'] = corpus[docid]['description']
+                    fout.write(json.dumps(example, ensure_ascii=False)+'\n')
+                except:
+                    print('missing product', docid)
 

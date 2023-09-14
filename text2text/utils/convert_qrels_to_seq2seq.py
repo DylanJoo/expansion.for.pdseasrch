@@ -1,5 +1,4 @@
 from tqdm import tqdm
-import random
 import collections
 import argparse
 import json
