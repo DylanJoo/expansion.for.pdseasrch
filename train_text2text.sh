@@ -16,6 +16,8 @@ python3 ../text2text/train.py \
     --evaluation_strategy steps \
     --per_device_train_batch_size 32 \
     --per_device_eval_batch_size 32 \
+    --optim adafactor \
     --learning_rate 1e-4 \
+    --lr_scheduler_type constant \
     --template "summarize: title: {0} description: {1}"
 
