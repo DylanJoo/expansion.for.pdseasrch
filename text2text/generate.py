@@ -3,36 +3,10 @@ import torch
 from tqdm import tqdm 
 import json
 import argparse
-from transformers import (
-    T5ForConditionalGeneration,
-    T5Tokenizer
-)
+from transformers import T5ForConditionalGeneration, T5Tokenizer
 from transformers import GenerationConfig
 from datasets import load_dataset
 from torch.utils.data import DataLoader
-
-# t5 desc to title
-def summarize_d2t(model, tokenizer, batch, config, device, **kwargs):
-    n = len(batch['description'])
-    processed_input = tokenizer(
-            [f"summarize: {batch['description'][i]}" for i in range(n)],
-            max_length=kwargs.pop('max_src_length', 512),
-            truncation=True,
-            padding=True,
-            return_tensors='pt'
-    ).to(device)
-
-    outputs = model.generate(
-            **processed_input, 
-            generation_config=config
-    )
-    processed_output = tokenizer.batch_decode(
-            outputs, skip_special_tokens=True
-    )
-    # remove the texts without desc
-    for j in [i for i in range(n) if batch['description'][i] == ""]:
-        processed_output[j] = ""
-    return processed_output
 
 # t5 product to query
 def summarize_p2q(model, tokenizer, batch, config, device, **kwargs):
@@ -56,7 +30,7 @@ def summarize_p2q(model, tokenizer, batch, config, device, **kwargs):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument("--collection_sim", type=str)
+    parser.add_argument("--collection", type=str)
     parser.add_argument("--output_jsonl", type=str, default=None)
 
     parser.add_argument("--model_name", default='t5-base', type=str)
@@ -82,39 +56,30 @@ if __name__ == '__main__':
     model = model.eval()
 
     # load config
-    additional_generation_config = {
-            "num_beams": args.num_beams, 
-            "top_k": args.top_k, 
-            "do_sample": args.do_sample, 
-            "max_new_tokens": args.max_tgt_length, 
-            "num_return_sequences": args.num_return_sequences 
-    }
     generation_config = GenerationConfig.from_pretrained(
-            "t5-base", **additional_generation_config
+            "t5-base", 
+            num_beams=args.num_beams, 
+            top_k=args.top_k, 
+            do_sample=args.do_sample, 
+            max_new_tokensargs.max_tgt_length, 
+            num_return_sequences=args.num_return_sequences 
     )
-    output_jsonl = args.collection_sim.replace('.jsonl', \
-            '.predicted.jsonl')
+    output_jsonl = args.collection.replace('.jsonl', '.predicted.jsonl')
     output_jsonl = (args.output_jsonl or output_jsonl)
 
     fout = open(output_jsonl, 'w')
 
     # load data
-    dataset = load_dataset('json', data_files=args.collection_sim)['train']
-    dataloader = DataLoader(dataset, 
+    dataset = load_dataset('json', data_files=args.collection)['train']
+    dataloader = DataLoader(
+            dataset, 
             batch_size=args.batch_size,
             shuffle=False, 
             pin_memory=True, 
             drop_last=False, 
     )
     for batch in tqdm(dataloader):
-        if 'desc2title' in args.model_name:
-            summarized_texts = summarize_d2t(
-                    model, tokenizer, batch, 
-                    generation_config,
-                    device=args.device,
-                    max_src_length=args.max_src_length
-            )
-        elif 'product2query' in args.model_name:
+        if 'product2query' in args.model_name:
             summarized_texts = summarize_p2q(
                     model, tokenizer, batch, 
                     generation_config,
@@ -123,8 +88,16 @@ if __name__ == '__main__':
             )
         batch_ids = batch['id'].detach().numpy()
 
+        # if 'desc2title' in args.model_name:
+        #     summarized_texts = summarize_d2t(
+        #             model, tokenizer, batch, 
+        #             generation_config,
+        #             device=args.device,
+        #             max_src_length=args.max_src_length
+        #     )
+
+        # enumerate the generated outputs
         for i in range(len(batch_ids)):
-        # for (docid, summarized_text) in zip(batch_ids, summarized_texts):
             docid = batch_ids[i]
             summarized_text = summarized_texts[i]
             if args.num_return_sequences > 1:
@@ -132,7 +105,32 @@ if __name__ == '__main__':
                 end = start+args.num_return_sequences
                 summarized_text = summarized_texts[start: end]
 
-            fout.write(json.dumps({"id": str(docid), "contents": summarized_text})+'\n')
+            fout.write(json.dumps({
+                "id": str(docid), "contents": summarized_text
+            })+'\n')
 
     fout.close()
     print("Done")
+
+# # t5 desc to title
+# def summarize_d2t(model, tokenizer, batch, config, device, **kwargs):
+#     n = len(batch['description'])
+#     processed_input = tokenizer(
+#             [f"summarize: {batch['description'][i]}" for i in range(n)],
+#             max_length=kwargs.pop('max_src_length', 512),
+#             truncation=True,
+#             padding=True,
+#             return_tensors='pt'
+#     ).to(device)
+#
+#     outputs = model.generate(
+#             **processed_input, 
+#             generation_config=config
+#     )
+#     processed_output = tokenizer.batch_decode(
+#             outputs, skip_special_tokens=True
+#     )
+#     # remove the texts without desc
+#     for j in [i for i in range(n) if batch['description'][i] == ""]:
+#         processed_output[j] = ""
+#     return processed_output
