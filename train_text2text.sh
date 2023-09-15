@@ -11,9 +11,10 @@ python3 text2text/train.py \
     --max_steps 50000 \
     --save_steps 10000 \
     --eval_steps 500 \
+    --save_strategy steps \
     --evaluation_strategy steps \
-    --per_device_train_batch_size 32 \
-    --per_device_eval_batch_size 32 \
+    --per_device_train_batch_size 2 \
+    --per_device_eval_batch_size 2 \
     --optim adafactor \
     --learning_rate 1e-3 \
     --lr_scheduler_type linear \

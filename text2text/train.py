@@ -47,6 +47,14 @@ def main():
             data_collator=data_collator,
     )
     
+    trainer = Seq2SeqTrainer(
+            model=model, 
+            args=training_args,
+            train_dataset=dataset['train'],
+            eval_dataset=dataset['test'],
+            data_collator=data_collator,
+    )
+
     # ***** strat training *****
     results = trainer.train(
             resume_from_checkpoint=training_args.resume_from_checkpoint

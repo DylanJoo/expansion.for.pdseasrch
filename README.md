@@ -15,7 +15,8 @@ We put all the downloaded files in the directory [data](/data).  It will contain
 4. TBA
 
 While some of our prepreocessed dataset can be found at this [huggingface hub](https://huggingface.co/datasets/DylanJHJ/pds2023/tree/main)
-1. TBA
+1. trec-pds.train.product2query.jsonl [huggingface_hub](#)
+- Number of examples: 307492 (we randomly pick 3K examples as validation)
 
 ### Baselines
 
