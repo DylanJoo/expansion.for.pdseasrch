@@ -25,7 +25,6 @@ if __name__ == '__main__':
 
             query_text = query[qid].split(' ')
             if ( len(query_text) == 1) and (query_text[0].startswith("B") ):
-            # if (len(query_text) == 1):
                 filtered_qrels[qid].append( (docid, relevance) )
             else:
                 valid_queries.append(qid)

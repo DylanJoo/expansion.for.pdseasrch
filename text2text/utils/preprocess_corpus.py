@@ -16,45 +16,18 @@ def get_simple_collection():
             doc_id = data.pop('doc_id')
             title = data.pop('title', '')
             description = data.pop('description', '')
+            data_type = data.pop('type', '')
             asin = data.pop('asin', '')
 
-            if data['type'] != 'error':
+            if (data_type != 'error') or (asin != asin):
                 fo.write(json.dumps({
                     'id': doc_id, 
                     'title': title, 
                     'description': description, 
-                    'asin': asin
-                }, ensure_ascii=False)+'\n')
-            elif asin != '':
-                fo.write(json.dumps({
-                    'id': doc_id, 
-                    'title': "", 
-                    'description': "", 
                     'asin': asin
                 }, ensure_ascii=False)+'\n')
             else:
                 continue
-
-# Collection [TODO]
-CORPUS='/tmp2/trec/pds/data/collection/collection_full.jsonl'
-def get_full_collection():
-    CORPUS_SIM='/tmp2/trec/pds/data/collection/collection_sim.jsonl'
-    fo = open(CORPUS_SIM, 'w')
-    with open(CORPUS, 'r') as fi:
-        for line in tqdm(fi):
-            data = json.loads(line.strip())
-            doc_id = data.pop('doc_id')
-            title = data.pop('title', '')
-            description = data.pop('description', '')
-            asin = data.pop('asin', '')
-
-            if data['type'] != 'error':
-                fo.write(json.dumps({
-                    'id': doc_id, 
-                    'title': title, 
-                    'description': description, 
-                    'asin': asin
-                }, ensure_ascii=False)+'\n')
 
 # IMGLIST='/tmp2/trec/pds/data/collection/collection_imgs.json'
 IMGLIST='/tmp2/trec/pds/data/collection/collection_images.jsonl'

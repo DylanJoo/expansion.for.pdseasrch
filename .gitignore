@@ -1,2 +1,11 @@
 data/corpus.jsonl
+data/filtered/
 data/trec-pds.train.product2query.jsonl
+**/__pycache__/
+**/wandb/
+**err
+**log
+
+models/
+
+indexing/
