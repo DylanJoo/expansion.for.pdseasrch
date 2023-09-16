@@ -14,20 +14,64 @@ We put all the downloaded files in the directory [data](/data).  It will contain
 3. product-search-train-qrels [huggingface hub](https://huggingface.co/datasets/trec-product-search/Product-Search-Qrels-v0.1/blob/main/data/train/product-search-train.qrels.gz)
 4. TBA
 
-While some of our prepreocessed dataset can be found at this [huggingface hub](https://huggingface.co/datasets/DylanJHJ/pds2023/tree/main)
-1. trec-pds.train.product2query.jsonl [huggingface_hub](#)
-- Number of examples: 307492 (we randomly pick 3K examples as validation)
+Some of our prepreocessed datasets/files can be found at this [huggingface hub](https://huggingface.co/datasets/DylanJHJ/pds2023/tree/main).
 
-### Baselines
+| Files                               | \# Examples |
+|:------------------------------------|:------------|
+| data/corpus.jsonl                   | 1118658     |
+| data/filtered/corpus.filtered.jsonl | 1080262     |
+| trec-pds.train.product2query.jsonl  | 307492      |
+    
+1. corpus.filtered.jsonl [huggingface_hub] (#) 
+A few products' description/title are missing (38396), we only perform indexing on the rest of them.
+```
+python3 text2text/filter_corpus.py --input_jsonl data/corpus.jsonl --output_jsonl data/filtered/corpus.filtered.jsonl
+```
 
-### Text-to-text Method
-1. Convert [product-search-train.qrels](#) into a jsonl file.
+2. trec-pds.train.product2query.jsonl [huggingface_hub](#)
+This training files contains 307492 examples (randomly pick 3K examples as validation). We use the train qrels labels [product-search-train.qrels](#) and convert it into seq2se format. You can find the jsonl file [here (huggingface's hub)](#) or run the following script.
 ```
 python text2text/convert_qrel_to_seq2seq.py \
     --collection data/corpus.jsonl \
     --query data/qid2query.tsv \
     --qrel data/product-search-train.qrels \
     --output data/trec-pds.train.product2query.jsonl
+```
+
+### Current Results
+
+
+### Text-to-text Method
+
+1. Fine-tune on the constructed dataset.
+```
+TRAIN_SEQ2SEQ=data/trec-pds.train.product2query.jsonl
+MODEL_PATH=models/t5-base-product2query 
+
+python3 text2text/train.py \
+    --model_name_or_path t5-base \
+    --config_name t5-base \
+    --tokenizer_name t5-base \
+    --train_file ${TRAIN_SEQ2SEQ} \
+    --max_src_length 384  \
+    --max_tgt_length 32 \
+    --output_dir ${MODEL_PATH} \
+    --do_train --do_eval \
+    --save_strategy steps \
+    --max_steps 50000 \
+    --save_steps 10000 \
+    --eval_steps 500 \
+    --save_strategy steps \
+    --evaluation_strategy steps \
+    --per_device_train_batch_size 2 \
+    --per_device_eval_batch_size 2 \
+    --optim adafactor \
+    --learning_rate 1e-3 \
+    --lr_scheduler_type linear \
+    --warmup_steps 1000 \
+    --remove_unused_columns false \
+    --report_to wandb \
+    --template "summarize: title: {0} description: {1}"
 ```
 
 ---
