@@ -5,7 +5,7 @@ import json
 import argparse
 from transformers import T5ForConditionalGeneration, T5Tokenizer
 from transformers import GenerationConfig
-from datasets import load_dataset
+from datasets import Dataset
 from utils import batch_iterator
 
 # t5 product to query
@@ -70,7 +70,19 @@ if __name__ == '__main__':
     fout = open(output_jsonl, 'w')
 
     # load data
-    dataset = load_dataset('json', data_files=args.collection)['train']
+    # dataset = load_dataset('json', data_files=args.collection)['train']
+    data = []
+    with open(args.collection, 'r') as f:
+        for line in tqdm(f):
+            item = json.loads(line.strip())
+            data.append({
+                    'doc_id': item['doc_id'],
+                    'title': item['title'],
+                    'description': item['description']
+            })
+    dataset = Dataset.from_list(data)
+    print(dataset)
+
     data_iterator = batch_iterator(dataset, args.batch_size, False)
     for batch in tqdm(data_iterator, total=len(dataset)//args.batch_size+1):
         summarized_texts = summarize_p2q(

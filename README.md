@@ -7,25 +7,33 @@ Retrieval methods will based on the sparse retrieval and learned sparse retrieva
 ### Dataset
 We used the dataset collected by TREC Prodcut Search Track. 
 Each files we used are stored at [product-search huggingface](https://huggingface.co/trec-product-search). 
+<!-- 1. corpus.jsonl  -->
+<!-- [huggingface hub](https://huggingface.co/datasets/trec-product-search/product-search-corpus/blob/main/data/jsonl/corpus.jsonl.gz) -->
+<!-- 2. qid2query.tsv [huggingface hub](https://huggingface.co/datasets/trec-product-search/product-search-corpus/blob/main/data/qid2query.tsv) -->
+<!-- 3. product-search-train-qrels [huggingface hub](https://huggingface.co/datasets/trec-product-search/Product-Search-Qrels-v0.1/blob/main/data/train/product-search-train.qrels.gz) -->
 
-We put all the downloaded files in the directory [data](/data).  It will contain
-1. corpus.jsonl [huggingface hub](https://huggingface.co/datasets/trec-product-search/product-search-corpus/blob/main/data/jsonl/corpus.jsonl.gz)
-2. qid2query.tsv [huggingface hub](https://huggingface.co/datasets/trec-product-search/product-search-corpus/blob/main/data/qid2query.tsv)
-3. product-search-train-qrels [huggingface hub](https://huggingface.co/datasets/trec-product-search/Product-Search-Qrels-v0.1/blob/main/data/train/product-search-train.qrels.gz)
-4. TBA
+| Original Files                             | \# Examples |
+|:-------------------------------------------|:------------|
+| data/corpus.jsonl                          | 1118658     |
+| data/qid2query.tsv                         | 30734       |
+| data/product-search-dev.qrels              | 169952      |
 
-Some of our prepreocessed datasets/files can be found at this [huggingface hub](https://huggingface.co/datasets/DylanJHJ/pds2023/tree/main).
-
-| Files                               | \# Examples |
-|:------------------------------------|:------------|
-| data/corpus.jsonl                   | 1118658     |
-| data/filtered/corpus.filtered.jsonl | 1080262     |
-| trec-pds.train.product2query.jsonl  | 307492      |
+| Preprocessed Files                         | \# Examples |
+|:-------------------------------------------|:------------|
+| data/filtered_corpus/corpus.filtered.jsonl | 1080262     |
+| data/qid2query-dev-filtered.tsv            | 8941        |
+| data/product-search-dev-filtered.qrels     | 169731      |
+| trec-pds.train.product2query.jsonl         | 307492      |
     
+
+Note that some of our prepreocessed datasets/files can be found at this [huggingface hub](https://huggingface.co/datasets/DylanJHJ/pds2023/tree/main).
+
 1. corpus.filtered.jsonl [huggingface_hub] (#) 
 A few products' description/title are missing (38396), we only perform indexing on the rest of them.
 ```
-python3 text2text/filter_corpus.py --input_jsonl data/corpus.jsonl --output_jsonl data/filtered/corpus.filtered.jsonl
+python3 text2text/filter_corpus.py \
+    --input_jsonl data/corpus.jsonl \
+    --output_jsonl data/filtered_corpus/corpus.filtered.jsonl
 ```
 
 2. trec-pds.train.product2query.jsonl [huggingface_hub](#)
@@ -36,6 +44,21 @@ python text2text/convert_qrel_to_seq2seq.py \
     --query data/qid2query.tsv \
     --qrel data/product-search-train.qrels \
     --output data/trec-pds.train.product2query.jsonl
+```
+
+3. Qrels filtered
+We remove 13 queries in original [dev-qrels](data/product-search-dev.qrels) that have no particular information needs. 
+The filtered [dev-qrels](data/product-search-filtered-dev.qrels) was converted by this command.
+```
+python3 tools/filter_invalid_queries.py \
+    --query data/qid2query.tsv \
+    --qrels data/product-search-dev.qrels \
+    --qrels_filtered data/product-search-dev-filtered.qrels \
+    --query_filtered data/qid2query-dev-filtered.tsv
+# Output
+Filtered query:
+['B07SDGB8XG', 'B01LE7U1PG', 'B074M44VZ6', 'B07R5H8QSY', 'B087CZZNDJ', 'B00MEHLYY8', 'B079SHC4SM', 'B086X41FSY', 'B07H2JS63P', 'B004V23YV0', 'B06XXZWR52', 'B00RINP9HG', 'B00HKC17R6']
+Number of query filtered: 13
 ```
 
 ### Current Results
