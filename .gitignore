@@ -9,3 +9,5 @@ data/trec-pds.train.product2query.jsonl
 models/
 
 indexing/
+
+results/

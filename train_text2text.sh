@@ -17,7 +17,7 @@ python3 text2text/train.py \
     --per_device_eval_batch_size 2 \
     --optim adafactor \
     --learning_rate 1e-3 \
-    --lr_scheduler_type linear \
+    --lr_scheduler_type constant \
     --warmup_steps 1000 \
     --remove_unused_columns false \
     --report_to wandb \
