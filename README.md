@@ -20,20 +20,20 @@ Each files we used are stored at [product-search huggingface](https://huggingfac
 
 | Preprocessed Files                         | \# Examples |
 |:-------------------------------------------|:------------|
-| data/filtered_corpus/corpus.filtered.jsonl | 1080262     |
-| data/qid2query-dev-filtered.tsv            | 8941        |
-| data/product-search-dev-filtered.qrels     | 169731      |
+| data/simplified_corpus/corpus.jsonl        | 1080262     |
+| data/qid2query-dev-filtered.tsv            | 8940        |
+| data/product-search-dev-filtered.qrels     | 169718      |
 | trec-pds.train.product2query.jsonl         | 307492      |
     
 
 Note that some of our prepreocessed datasets/files can be found at this [huggingface hub](https://huggingface.co/datasets/DylanJHJ/pds2023/tree/main).
 
-1. corpus.filtered.jsonl [huggingface_hub] (#) 
+1. simplified_corpus/corpus.jsonl [huggingface_hub] (#) 
 A few products' description/title are missing (38396), we only perform indexing on the rest of them.
 ```
 python3 text2text/filter_corpus.py \
     --input_jsonl data/corpus.jsonl \
-    --output_jsonl data/filtered_corpus/corpus.filtered.jsonl
+    --output_jsonl data/simplified_corpus/corpus.jsonl
 ```
 
 2. trec-pds.train.product2query.jsonl [huggingface_hub](#)
@@ -56,12 +56,15 @@ python3 tools/filter_invalid_queries.py \
     --qrels_filtered data/product-search-dev-filtered.qrels \
     --query_filtered data/qid2query-dev-filtered.tsv
 # Output
+169952it [00:00, 463853.96it/s]
 Filtered query:
-['B07SDGB8XG', 'B01LE7U1PG', 'B074M44VZ6', 'B07R5H8QSY', 'B087CZZNDJ', 'B00MEHLYY8', 'B079SHC4SM', 'B086X41FSY', 'B07H2JS63P', 'B004V23YV0', 'B06XXZWR52', 'B00RINP9HG', 'B00HKC17R6']
-Number of query filtered: 13
+['B07SDGB8XG', '', 'B01LE7U1PG', 'B074M44VZ6', 'B07R5H8QSY', 'B087CZZNDJ', 'B00MEHLYY8', 'B079SHC4SM', 'B086X41FSY', 'B07H2JS63P', 'B004V23YV0', 'B06XXZWR52', 'B00RINP9HG', 'B00HKC17R6']
+Number of query filtered: 14
 ```
 
-### Current Results
+### Results
+Check the [goolge sheet](https://docs.google.com/spreadsheets/d/1exPfLltGaaf-4Xf3cw4eEhlh8fmouJjoWg4aZWtZDME/edit?usp=sharing)
+
 
 
 ### Text-to-text Method
@@ -96,7 +99,24 @@ python3 text2text/train.py \
     --report_to wandb \
     --template "summarize: title: {0} description: {1}"
 ```
+2. Append the predicted texts as a new corpus
+We only append the `title` as there is no significant difference between using it with description.
+```
+python3 tools/concat_predict_to_corpus.py \
+    --input_jsonl data/corpus.jsonl  \
+    --prediction_jsonl predictions/corpus.pred.jsonl \
+    --output_dir data/title+prod2query_old  \ 
+    --use_title 
+```
 
+The fine-tuned text-to-text model checkpoint.
+```
+python3 tools/concat_predict_to_corpus.py \
+    --input_jsonl data/corpus.jsonl  \
+    --prediction_jsonl predictions/corpus.pred.jsonl 
+    --output_dir data/title+prod2query_old  \ 
+    --use_title 
+```
 ---
 ### References:
 
