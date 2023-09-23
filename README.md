@@ -104,6 +104,7 @@ python3 text2text/train.py \
 - [x] Document Expansion by Query Prediction [(Nogueira et al., 2019)](https://arxiv.org/abs/1904.08375)
 - [x] SPLADE: Sparse Lexical and Expansion Model for First Stage Ranking [(Formal et al., 2021)](https://arxiv.org/pdf/2308.00415.pdf)
 - [ ] Generative Query Reformulation for Effective Adhoc Search [(Wang et al., 2023)](https://arxiv.org/pdf/2308.00415.pdf)
+- [x] Leveraging Customer Reviews for E-commerce Query Generation [(Lien et al., 2022)](https://assets.amazon.science/34/e3/a29bde1d44ca9b4252c38a69459c/leveraging-customer-reviews-for-e-commerce-query-generation.pdf)
 
 #### Multimodal
 - [x] MSMO: Multimodal Summarization with Multimodal Output [(Zhu et al., 2023)](https://aclanthology.org/D18-1448.pdf)
