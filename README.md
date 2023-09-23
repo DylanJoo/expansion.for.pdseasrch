@@ -109,8 +109,9 @@ python3 text2text/train.py \
 - [x] MSMO: Multimodal Summarization with Multimodal Output [(Zhu et al., 2023)](https://aclanthology.org/D18-1448.pdf)
 - [x] Exploiting Pseudo Image Captions for Multimodal Summarization [(Jiang et al., 2023)](https://arxiv.org/pdf/2305.05496.pdf)
 - [x] Flava: A foundational language and vision alignment model [(Singh et al., 2022)](https://arxiv.org/abs/2112.04482) 
-- [ ] [(OCR toolkit)](https://github.com/PaddlePaddle/PaddleOCR?fbclid=IwAR0ZHQCfhph9HipDFDtaoozOhcNlrOOSQIExywJTsR9M8BTwbX4A3WPcuKY)
+- [x] Understanding Guided Image Captioning Performance across Domains [(Ng et al., 2021)](https://arxiv.org/abs/2012.02339)
 
 #### Others
+- [ ] [(OCR toolkit)](https://github.com/PaddlePaddle/PaddleOCR?fbclid=IwAR0ZHQCfhph9HipDFDtaoozOhcNlrOOSQIExywJTsR9M8BTwbX4A3WPcuKY)
 - [x] Retrieval-augmented Image Captioning [(Ramos et al., 2023)](https://arxiv.org/pdf/2302.08268.pdf)
 - [x] FAIR-PMD [(dataset)](https://huggingface.co/datasets/facebook/pmd) 
