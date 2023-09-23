@@ -111,6 +111,7 @@ python3 text2text/train.py \
 - [x] Flava: A foundational language and vision alignment model [(Singh et al., 2022)](https://arxiv.org/abs/2112.04482)
 - [x] Kosmos-2: Grounding Multimodal Large Language Models to the World [(Peng et al., 2023)](https://arxiv.org/abs/2306.14824)
 - [x] Understanding Guided Image Captioning Performance across Domains [(Ng et al., 2021)](https://arxiv.org/abs/2012.02339)
+- [x] Query Generation for Multimodal Documents [(Kim et al., 2021)](https://aclanthology.org/2021.eacl-main.54/) 
 
 #### Others
 - [ ] [(OCR toolkit)](https://github.com/PaddlePaddle/PaddleOCR?fbclid=IwAR0ZHQCfhph9HipDFDtaoozOhcNlrOOSQIExywJTsR9M8BTwbX4A3WPcuKY)
