@@ -4,6 +4,11 @@ This project is aiming at enhancing product representation using contents in pro
 Retrieval methods will based on the sparse retrieval and learned sparse retrieval.
 
 ---
+[Docuemnt](https://docs.google.com/document/d/1KxX3rIW7nBVcREkZ5GRUDD2ECPeXSthNUQLnxbSi464/edit?usp=sharing)
+[Sheet](https://docs.google.com/spreadsheets/d/1exPfLltGaaf-4Xf3cw4eEhlh8fmouJjoWg4aZWtZDME/edit?usp=sharing)
+[Slide](https://docs.google.com/presentation/d/1INviUYGwyGmfDqzhgTnfemRisEd8CJQTWcpVL0pPFXA/edit?usp=sharing)
+
+---
 ### Dataset
 We used the dataset collected by TREC Prodcut Search Track. 
 Each files we used are stored at [product-search huggingface](https://huggingface.co/trec-product-search). 
@@ -107,16 +112,22 @@ python3 text2text/train.py \
 - [x] Leveraging Customer Reviews for E-commerce Query Generation [(Lien et al., 2022)](https://assets.amazon.science/34/e3/a29bde1d44ca9b4252c38a69459c/leveraging-customer-reviews-for-e-commerce-query-generation.pdf)
 - [ ] Lexically-Accelerated Dense Retrieval [(Kulkarni et al., 2023)](https://dl.acm.org/doi/pdf/10.1145/3539618.3591715) 
 
+#### Image-based 
+- [ ] BLIP
+- [ ] GIT 
+
 #### Multimodal
 - [x] MSMO: Multimodal Summarization with Multimodal Output [(Zhu et al., 2023)](https://aclanthology.org/D18-1448.pdf)
 - [x] Exploiting Pseudo Image Captions for Multimodal Summarization [(Jiang et al., 2023)](https://arxiv.org/pdf/2305.05496.pdf)
 - [x] Flava: A foundational language and vision alignment model [(Singh et al., 2022)](https://arxiv.org/abs/2112.04482)
 - [x] Kosmos-2: Grounding Multimodal Large Language Models to the World [(Peng et al., 2023)](https://arxiv.org/abs/2306.14824)
 - [x] Understanding Guided Image Captioning Performance across Domains [(Ng et al., 2021)](https://arxiv.org/abs/2012.02339)
-- [x] Query Generation for Multimodal Documents [(Kim et al., 2021)](https://aclanthology.org/2021.eacl-main.54/) 
+- [x] Query Generation for Multimodal Documents [(Kim et al., 2021)](https://aclanthology.org/2021.eacl-main.54/)
 
-#### Others
-- [ ] [(OCR toolkit)](https://github.com/PaddlePaddle/PaddleOCR?fbclid=IwAR0ZHQCfhph9HipDFDtaoozOhcNlrOOSQIExywJTsR9M8BTwbX4A3WPcuKY)
+#### Benchmark datasets
 - [x] Retrieval-augmented Image Captioning [(Ramos et al., 2023)](https://arxiv.org/pdf/2302.08268.pdf)
 - [x] FAIR-PMD [(dataset)](https://huggingface.co/datasets/facebook/pmd)
 - [x] GeneralAI-GRIT [(details)](https://github.com/microsoft/unilm/tree/master/kosmos-2)
+
+#### Others
+- [ ] [(OCR toolkit)](https://github.com/PaddlePaddle/PaddleOCR?fbclid=IwAR0ZHQCfhph9HipDFDtaoozOhcNlrOOSQIExywJTsR9M8BTwbX4A3WPcuKY)
