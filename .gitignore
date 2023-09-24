@@ -1,10 +1,10 @@
-data/corpus.jsonl
-data/filtered_corpus/
-data/trec-pds.train.product2query.jsonl
 **/__pycache__/
 **/wandb/
 **err
 **log
+
+data/**/corpus.jsonl
+data/trec-pds.train.product2query.jsonl
 
 models/
 
