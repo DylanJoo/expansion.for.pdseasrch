@@ -1,13 +1,9 @@
 mkdir -p runs
 
+prefix=trec-pds-expanded
 python3 retrieval/bm25_search.py \
     --query data/qid2query-dev-filtered.tsv \
-    --output runs/bm25-sim-dev-title.prod2query.trec \
-    --index_dir indexing/trec-pds-expanded-title+prod2query \
-    --k 1000 --k1 0.9 --b 0.4
+    --output runs/dev-bm25-title.prod2query.trec \
+    --index_dir indexing/test \
+    --k 1000 --k1 0.5 --b 0.3
 
-python3 retrieval/bm25_search.py \
-    --query data/qid2query-dev-filtered.tsv \
-    --output runs/bm25-sim-dev-title.prod2query_old.trec \
-    --index_dir indexing/trec-pds-expanded-title+prod2query_old \
-    --k 1000 --k1 0.9 --b 0.4
