@@ -23,13 +23,8 @@ Each files we used are stored at [product-search huggingface](https://huggingfac
 | Preprocessed Files                         | \# Examples |
 |:-------------------------------------------|:------------|
 | data/simplified_corpus/corpus.jsonl        | 1080262     |
-<<<<<<< HEAD
 | data/qid2query-dev-filtered.tsv            | 8940        |
 | data/product-search-dev-filtered.qrels     | 169718      |
-=======
-| data/qid2query-dev-filtered.tsv            | 8941        |
-| data/product-search-dev-filtered.qrels     | 169731      |
->>>>>>> e9023b89fba98e70ce842c194795121ebac11314
 | trec-pds.train.product2query.jsonl         | 307492      |
     
 
