@@ -12,14 +12,7 @@ Retrieval methods will based on the sparse retrieval and learned sparse retrieva
 ### Dataset
 We used the dataset collected by TREC Prodcut Search Track. 
 Each files we used are stored at [product-search huggingface](https://huggingface.co/trec-product-search). 
-<<<<<<< HEAD
-<!-- 1. corpus.jsonl  -->
-<!-- [huggingface hub](https://huggingface.co/datasets/trec-product-search/product-search-corpus/blob/main/data/jsonl/corpus.jsonl.gz) -->
-<!-- 2. qid2query.tsv [huggingface hub](https://huggingface.co/datasets/trec-product-search/product-search-corpus/blob/main/data/qid2query.tsv) -->
-<!-- 3. product-search-train-qrels [huggingface hub](https://huggingface.co/datasets/trec-product-search/Product-Search-Qrels-v0.1/blob/main/data/train/product-search-train.qrels.gz) -->
-=======
 > The files has connect to my datasets directory: `/home/jhju/datasets/`
->>>>>>> e9023b89fba98e70ce842c194795121ebac11314
 
 | Original Files                             | \# Examples |
 |:-------------------------------------------|:------------|
@@ -42,20 +35,12 @@ Each files we used are stored at [product-search huggingface](https://huggingfac
 
 Note that some of our prepreocessed datasets/files can be found at this [huggingface hub](https://huggingface.co/datasets/DylanJHJ/pds2023/tree/main).
 
-<<<<<<< HEAD
 1. simplified_corpus/corpus.jsonl [huggingface_hub] (#) 
-=======
-1. corpus.filtered.jsonl [huggingface_hub] (#) 
->>>>>>> e9023b89fba98e70ce842c194795121ebac11314
 A few products' description/title are missing (38396), we only perform indexing on the rest of them.
 ```
 python3 text2text/filter_corpus.py \
     --input_jsonl data/corpus.jsonl \
-<<<<<<< HEAD
     --output_jsonl data/simplified_corpus/corpus.jsonl
-=======
-    --output_jsonl data/filtered_corpus/corpus.filtered.jsonl
->>>>>>> e9023b89fba98e70ce842c194795121ebac11314
 ```
 
 2. trec-pds.train.product2query.jsonl [huggingface_hub](#)
@@ -78,7 +63,6 @@ python3 tools/filter_invalid_queries.py \
     --qrels_filtered data/product-search-dev-filtered.qrels \
     --query_filtered data/qid2query-dev-filtered.tsv
 # Output
-<<<<<<< HEAD
 169952it [00:00, 463853.96it/s]
 Filtered query:
 ['B07SDGB8XG', '', 'B01LE7U1PG', 'B074M44VZ6', 'B07R5H8QSY', 'B087CZZNDJ', 'B00MEHLYY8', 'B079SHC4SM', 'B086X41FSY', 'B07H2JS63P', 'B004V23YV0', 'B06XXZWR52', 'B00RINP9HG', 'B00HKC17R6']
@@ -87,15 +71,6 @@ Number of query filtered: 14
 
 ### Results
 Check the [goolge sheet](https://docs.google.com/spreadsheets/d/1exPfLltGaaf-4Xf3cw4eEhlh8fmouJjoWg4aZWtZDME/edit?usp=sharing)
-
-=======
-Filtered query:
-['B07SDGB8XG', 'B01LE7U1PG', 'B074M44VZ6', 'B07R5H8QSY', 'B087CZZNDJ', 'B00MEHLYY8', 'B079SHC4SM', 'B086X41FSY', 'B07H2JS63P', 'B004V23YV0', 'B06XXZWR52', 'B00RINP9HG', 'B00HKC17R6']
-Number of query filtered: 13
-```
-
-### Current Results
->>>>>>> e9023b89fba98e70ce842c194795121ebac11314
 
 
 ### Text-to-text Method
