@@ -12,10 +12,7 @@ Retrieval methods will based on the sparse retrieval and learned sparse retrieva
 ### Dataset
 We used the dataset collected by TREC Prodcut Search Track. 
 Each files we used are stored at [product-search huggingface](https://huggingface.co/trec-product-search). 
-<!-- 1. corpus.jsonl  -->
-<!-- [huggingface hub](https://huggingface.co/datasets/trec-product-search/product-search-corpus/blob/main/data/jsonl/corpus.jsonl.gz) -->
-<!-- 2. qid2query.tsv [huggingface hub](https://huggingface.co/datasets/trec-product-search/product-search-corpus/blob/main/data/qid2query.tsv) -->
-<!-- 3. product-search-train-qrels [huggingface hub](https://huggingface.co/datasets/trec-product-search/Product-Search-Qrels-v0.1/blob/main/data/train/product-search-train.qrels.gz) -->
+> The files has connect to my datasets directory: `/home/jhju/datasets/`
 
 | Original Files                             | \# Examples |
 |:-------------------------------------------|:------------|
@@ -25,7 +22,7 @@ Each files we used are stored at [product-search huggingface](https://huggingfac
 
 | Preprocessed Files                         | \# Examples |
 |:-------------------------------------------|:------------|
-| data/filtered_corpus/corpus.filtered.jsonl | 1080262     |
+| data/simplified_corpus/corpus.jsonl        | 1080262     |
 | data/qid2query-dev-filtered.tsv            | 8941        |
 | data/product-search-dev-filtered.qrels     | 169731      |
 | trec-pds.train.product2query.jsonl         | 307492      |
