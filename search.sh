@@ -1,9 +1,12 @@
 mkdir -p runs
 
 prefix=trec-pds-expanded
+model=t5-base-product2query
+ckpt=20000
+
 python3 retrieval/bm25_search.py \
     --query data/qid2query-dev-filtered.tsv \
-    --output runs/dev-bm25-title.prod2query.trec \
-    --index_dir indexing/test \
+    --output runs/dev-bm25-title.prod2query.20K.trec \
+    --index_dir indexing/${prefix}-${model}-${ckpt} \
     --k 1000 --k1 0.5 --b 0.3
 
