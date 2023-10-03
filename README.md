@@ -65,10 +65,6 @@ Filtered query:
 Number of query filtered: 14
 ```
 
-### Results
-Check the [goolge sheet](https://docs.google.com/spreadsheets/d/1exPfLltGaaf-4Xf3cw4eEhlh8fmouJjoWg4aZWtZDME/edit?usp=sharing)
-
-
 ### Text-to-text Method
 
 1. Fine-tune on the constructed dataset.
