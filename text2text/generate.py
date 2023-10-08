@@ -8,16 +8,30 @@ from transformers import GenerationConfig
 from datasets import Dataset
 from utils import batch_iterator
 
-# t5 product to query
-def summarize_p2q(model, tokenizer, batch, config, device, **kwargs):
+# Preprocessing functions
+def preprocess(model, tokenizer, batch, config, device, **kwargs):
     n = len(batch['description'])
-    processed_input = tokenizer(
-            [f"summarize: title: {batch['title'][i]} description: {batch['description'][i]}" for i in range(n)],
-            max_length=kwargs.pop('max_src_length', 512),
-            truncation=True,
-            padding=True,
-            return_tensors='pt'
-    ).to(device)
+    setting = kwargs.pop('model_name', 'produc2query') 
+
+    # 1) product2query: fine-tuned product2query template for t5 v1.1
+    if 'product2query' in setting:
+        processed_input = tokenizer(
+                [f"summarize: title: {batch['title'][i]} description: {batch['description'][i]}" for i in range(n)],
+                max_length=kwargs.pop('max_src_length', 512),
+                truncation=True,
+                padding=True,
+                return_tensors='pt'
+        ).to(device)
+
+    # 2) summarization: pre-trained summarization models
+    if 'cnn' in setting:
+        processed_input = tokenizer(
+                [f"{batch['title'][i]} {batch['description'][i]}" for i in range(n)],
+                max_length=kwargs.pop('max_src_length', 512),
+                truncation=True,
+                padding=True,
+                return_tensors='pt'
+        ).to(device)
 
     outputs = model.generate(
             **processed_input, 
@@ -34,7 +48,7 @@ if __name__ == '__main__':
     parser.add_argument("--output_jsonl", type=str, default=None)
 
     parser.add_argument("--model_name", default='t5-base', type=str)
-    parser.add_argument("--tokenizer_name", default='t5-base', type=str)
+    parser.add_argument("--model_hf_name", default='t5-base', type=str)
     parser.add_argument("--num_beams", default=1, type=int)
     parser.add_argument("--top_k", default=10, type=int)
     parser.add_argument("--do_sample", default=False, action='store_true')
@@ -46,18 +60,15 @@ if __name__ == '__main__':
     parser.add_argument("--device", default='cuda', type=str)
     args = parser.parse_args()
 
-    assert 't5' in args.model_name, "t5 only, so far"
-    assert 't5' in args.tokenizer_name, "t5 only, so far"
-
     # load hf 
-    tokenizer = T5Tokenizer.from_pretrained(args.tokenizer_name)
+    tokenizer = T5Tokenizer.from_pretrained(args.model_hf_name)
     model = T5ForConditionalGeneration.from_pretrained(args.model_name)
     model = model.to(args.device)
     model = model.eval()
 
     # load config
     generation_config = GenerationConfig.from_pretrained(
-            pretrained_model_name="t5-base", 
+            pretrained_model_name=args.model_hf_name,
             num_beams=args.num_beams, 
             top_k=args.top_k, 
             do_sample=args.do_sample, 
@@ -70,7 +81,6 @@ if __name__ == '__main__':
     fout = open(output_jsonl, 'w')
 
     # load data
-    # dataset = load_dataset('json', data_files=args.collection)['train']
     data = []
     with open(args.collection, 'r') as f:
         for line in tqdm(f):
@@ -85,13 +95,14 @@ if __name__ == '__main__':
 
     data_iterator = batch_iterator(dataset, args.batch_size, False)
     for batch in tqdm(data_iterator, total=len(dataset)//args.batch_size+1):
-        summarized_texts = summarize_p2q(
+        batch_ids = batch['doc_id']
+        summarized_texts = preprocess(
                 model, tokenizer, batch, 
                 generation_config,
                 device=args.device,
-                max_src_length=args.max_src_length
+                max_src_length=args.max_src_length,
+                model_name=args.model_name
         )
-        batch_ids = batch['doc_id']
 
         # enumerate the generated outputs
         for i in range(len(batch_ids)):
