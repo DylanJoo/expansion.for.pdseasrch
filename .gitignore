@@ -3,8 +3,9 @@
 **err
 **log
 
-data/**/corpus.jsonl
-
+data/expanded_corpus/
+data/simplified_corpus/
+data/title_corpus/
 data/trec-pds.train.product2query.jsonl
 
 models/
@@ -14,5 +15,3 @@ indexing/
 results/
 
 runs/
-
-predictions/

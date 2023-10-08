@@ -13,13 +13,13 @@ def load_corpus(path='data/corpus.jsonl'):
             docid = item.pop('doc_id')
             title = item.pop('title', '')
             description = item.pop('description', '')
-            data_type = data.pop('type', '')
-            asin = data.pop('asin', '')
+            data_type = item.pop('type', '')
+            asin = item.pop('asin', '')
 
-            if (data_type != 'error'):
-                data[str(docid)] = {'title': title, 'description': description}
-            else:
+            if data_type == 'error':
                 n_removed +=1
+            else:
+                data[str(docid)] = {'title': title, 'description': description}
 
     print(f"{n_removed} have been removed")
     return data
@@ -50,7 +50,6 @@ def main(corpus_path, pred_path, output_path, title=False, description=False):
             if description:
                 contents += corpus[docid]['description']
 
-            print(contents)
             fout.write(json.dumps({
                 'id': docid, 
                 'contents': contents + " " + predictions[docid]

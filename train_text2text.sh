@@ -6,11 +6,13 @@ python3 text2text/train.py \
     --max_src_length 256  \
     --max_tgt_length 32 \
     --output_dir models/t5-base-product2query \
+    --overwrite_output_dir true \
     --do_train --do_eval \
     --save_strategy steps \
     --max_steps 30000 \
     --save_steps 5000 \
     --eval_steps 500 \
+    --warmup_steps 1000 \
     --save_strategy steps \
     --evaluation_strategy steps \
     --per_device_train_batch_size 32 \

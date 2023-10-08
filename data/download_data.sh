@@ -1,3 +1,4 @@
+# Download the data if you need
 mkdir data
 # Official product search track at TREC'23
 # 1. corpus.jsonl [huggingface hub]
