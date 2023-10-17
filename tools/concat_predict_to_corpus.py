@@ -34,7 +34,10 @@ def load_predictions(path):
         for line in tqdm(f):
             item = json.loads(line.strip())
             docid = item.pop('id')
-            data[str(docid)] = " ".join(item['contents'])
+            if isinstance(item['contents'], str):
+                data[str(docid)] = item['contents']
+            else:
+                data[str(docid)] = " ".join(item['contents'])
     return data
 
 def main(corpus_path, pred_path, output_path, title=False, description=False):
