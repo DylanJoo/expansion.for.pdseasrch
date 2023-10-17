@@ -3,8 +3,7 @@ import torch
 from tqdm import tqdm 
 import json
 import argparse
-from transformers import T5ForConditionalGeneration, T5Tokenizer
-from transformers import GenerationConfig
+from transformers import GenerationConfig, AutoConfig
 from datasets import Dataset
 from utils import batch_iterator
 
@@ -14,7 +13,7 @@ def preprocess(model, tokenizer, batch, config, device, **kwargs):
     setting = kwargs.pop('model_name', 'produc2query') 
 
     # 1) product2query: fine-tuned product2query template for t5 v1.1
-    if 'product2query' in setting:
+    if 'product2query' in setting or 't5' in setting:
         processed_input = tokenizer(
                 [f"summarize: title: {batch['title'][i]} description: {batch['description'][i]}" for i in range(n)],
                 max_length=kwargs.pop('max_src_length', 512),
@@ -22,9 +21,8 @@ def preprocess(model, tokenizer, batch, config, device, **kwargs):
                 padding=True,
                 return_tensors='pt'
         ).to(device)
-
-    # 2) summarization: pre-trained summarization models
-    if 'cnn' in setting:
+    # 2) cnn: pre-trained summarization models like pegasus or bart
+    elif 'bart' in setting or 'pegasus' in setting:
         processed_input = tokenizer(
                 [f"{batch['title'][i]} {batch['description'][i]}" for i in range(n)],
                 max_length=kwargs.pop('max_src_length', 512),
@@ -50,19 +48,26 @@ if __name__ == '__main__':
     parser.add_argument("--model_name", default='t5-base', type=str)
     parser.add_argument("--model_hf_name", default='t5-base', type=str)
     parser.add_argument("--num_beams", default=1, type=int)
-    parser.add_argument("--top_k", default=10, type=int)
+    parser.add_argument("--top_k", default=50, type=int)
     parser.add_argument("--do_sample", default=False, action='store_true')
     parser.add_argument("--batch_size", default=16, type=int)
     parser.add_argument("--max_src_length", default=256, type=int)
     parser.add_argument("--max_tgt_length", default=32, type=int)
     parser.add_argument("--num_return_sequences", default=3, type=int)
+    parser.add_argument("--early_stopping", default=False, action='store_true')
 
     parser.add_argument("--device", default='cuda', type=str)
     args = parser.parse_args()
 
     # load hf 
-    tokenizer = T5Tokenizer.from_pretrained(args.model_hf_name)
-    model = T5ForConditionalGeneration.from_pretrained(args.model_name)
+    if 'product2query' in args.model_name:
+        from transformers import T5ForConditionalGeneration, AutoTokenizer
+        tokenizer = AutoTokenizer.from_pretrained(args.model_hf_name)
+        model = T5ForConditionalGeneration.from_pretrained(args.model_name)
+    else:
+        from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
+        tokenizer = AutoTokenizer.from_pretrained(args.model_hf_name)
+        model = AutoModelForSeq2SeqLM.from_pretrained(args.model_name)
     model = model.to(args.device)
     model = model.eval()
 
@@ -73,7 +78,8 @@ if __name__ == '__main__':
             top_k=args.top_k, 
             do_sample=args.do_sample, 
             max_new_tokens=args.max_tgt_length, 
-            num_return_sequences=args.num_return_sequences 
+            num_return_sequences=args.num_return_sequences,
+            early_stopping=args.early_stopping
     )
     output_jsonl = args.collection.replace('.jsonl', '.predicted.jsonl')
     output_jsonl = (args.output_jsonl or output_jsonl)

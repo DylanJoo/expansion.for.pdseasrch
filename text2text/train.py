@@ -22,7 +22,7 @@ def main():
 
     config = AutoConfig.from_pretrained(model_args.config_name)
     tokenizer = AutoTokenizer.from_pretrained(model_args.tokenizer_name)
-    model = T5ForConditionalGeneration.from_pretrained(model_args.model_name_or_path)
+    model = T5ForConditionalGeneration.from_pretrained(model_args.model_name_or_path, config=config)
     
 
     # Data: dataset
