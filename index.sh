@@ -1,4 +1,3 @@
-folder=$1
 for folder in data/expanded_corpus/t5-base-product2query*;do
     python -m pyserini.index.lucene \
         --collection JsonCollection \
