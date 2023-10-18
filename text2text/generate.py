@@ -13,7 +13,7 @@ def preprocess(model, tokenizer, batch, config, device, **kwargs):
     setting = kwargs.pop('model_name', 'produc2query') 
 
     # 1) product2query: fine-tuned product2query template for t5 v1.1
-    if 'product2query' in setting or 't5' in setting:
+    if 'product2query' in setting:
         processed_input = tokenizer(
                 [f"summarize: title: {batch['title'][i]} description: {batch['description'][i]}" for i in range(n)],
                 max_length=kwargs.pop('max_src_length', 512),
@@ -21,7 +21,16 @@ def preprocess(model, tokenizer, batch, config, device, **kwargs):
                 padding=True,
                 return_tensors='pt'
         ).to(device)
-    # 2) cnn: pre-trained summarization models like pegasus or bart
+    # 2) t5-cnndm: pre-trained summarization modeles
+    elif 't5-base-cnn-dm' in setting:
+        processed_input = tokenizer(
+                [f"summarize: {batch['title'][i]} {batch['description'][i]}" for i in range(n)],
+                max_length=kwargs.pop('max_src_length', 512),
+                truncation=True,
+                padding=True,
+                return_tensors='pt'
+        ).to(device)
+    # 2) bart-cnndm: pre-trained summarization models like pegasus or bart
     elif 'bart' in setting or 'pegasus' in setting:
         processed_input = tokenizer(
                 [f"{batch['title'][i]} {batch['description'][i]}" for i in range(n)],
@@ -30,6 +39,9 @@ def preprocess(model, tokenizer, batch, config, device, **kwargs):
                 padding=True,
                 return_tensors='pt'
         ).to(device)
+    else:
+        print('no available template for this model')
+        exit(0)
 
     outputs = model.generate(
             **processed_input, 
@@ -125,26 +137,3 @@ if __name__ == '__main__':
 
     fout.close()
     print("Done")
-
-# # t5 desc to title
-# def summarize_d2t(model, tokenizer, batch, config, device, **kwargs):
-#     n = len(batch['description'])
-#     processed_input = tokenizer(
-#             [f"summarize: {batch['description'][i]}" for i in range(n)],
-#             max_length=kwargs.pop('max_src_length', 512),
-#             truncation=True,
-#             padding=True,
-#             return_tensors='pt'
-#     ).to(device)
-#
-#     outputs = model.generate(
-#             **processed_input, 
-#             generation_config=config
-#     )
-#     processed_output = tokenizer.batch_decode(
-#             outputs, skip_special_tokens=True
-#     )
-#     # remove the texts without desc
-#     for j in [i for i in range(n) if batch['description'][i] == ""]:
-#         processed_output[j] = ""
-#     return processed_output
