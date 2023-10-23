@@ -22,7 +22,7 @@ def preprocess(model, tokenizer, batch, config, device, **kwargs):
                 return_tensors='pt'
         ).to(device)
     # 2) t5-cnndm: pre-trained summarization modeles
-    elif 't5-base-cnn-dm' in setting:
+    elif 't5-base' in setting:
         processed_input = tokenizer(
                 [f"summarize: {batch['title'][i]} {batch['description'][i]}" for i in range(n)],
                 max_length=kwargs.pop('max_src_length', 512),

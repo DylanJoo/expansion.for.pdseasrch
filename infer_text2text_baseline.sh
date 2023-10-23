@@ -2,8 +2,8 @@ FILE=data/corpus.jsonl
 mkdir -p results/
 
 # t5-base # failed 
-MODEL=flax-community/t5-base-cnn-dm
-FILE_OUT=results/corpus.t5-base-cnndm.pred.jsonl
+MODEL=t5-base
+FILE_OUT=results/corpus.t5-base.pred.jsonl
 python text2text/generate.py \
     --collection data/corpus.jsonl \
     --model_name $MODEL \
@@ -13,7 +13,6 @@ python text2text/generate.py \
     --max_src_length 512 \
     --max_tgt_length 64 \
     --num_return_sequences 1 \
-    --early_stopping  \
     --output_jsonl $FILE_OUT \
     --device cuda:2
 
