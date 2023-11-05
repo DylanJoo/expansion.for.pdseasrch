@@ -1,0 +1,37 @@
+task: 'image-captioning'
+bert_config: 'config_bert.json'
+
+image_res: 384
+batch_size_train: 64
+vision_width: 768
+distill: True
+clip_name: "ViT-B-16"
+batch_size_test: 64 
+k_test: 128
+
+alpha: 0.4
+warm_up: True
+
+eos: '[SEP]'
+
+optimizer: {opt: adamW, lr1: 3e-5, lr2: 5e-6, weight_decay: 0.02}
+schedular: {sched: cosine, lr: 3e-5, epochs: 8, min_lr: 1e-6, decay_rate: 1, warmup_lr: 1e-5, warmup_epochs: 4, cooldown_epochs: 0}
+
+# predictor
+min_length: 3
+max_length: 20
+beam_size: 3
+add_ocr: False
+add_object: False
+
+# clip
+clip_embed_dim: 512
+clip_image_resolution: 224
+clip_vision_layers: 12
+clip_vision_width: 768
+clip_vision_patch_size: 16
+clip_context_length: 77
+clip_vocab_size: 49408
+clip_transformer_width: 512
+clip_transformer_heads: 8
+clip_transformer_layers: 12

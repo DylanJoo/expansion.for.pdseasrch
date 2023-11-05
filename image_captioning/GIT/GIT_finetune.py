@@ -1,7 +1,7 @@
 import os
 os.environ["CUDA_VISIBLE_DEVICES"] = "2"
 
-from transformers import TrainingArguments, Trainer
+from transformers import TrainingArguments, Trainer, SchedulerType
 from transformers import AutoProcessor, AutoModelForCausalLM
 from datasets import Dataset
 import torch
@@ -55,10 +55,6 @@ def prepare_data():
     qrels_df.columns = ['qid', 'nothing', 'product', 'relevance']
     relevant_pair_df = qrels_df[qrels_df['relevance'] >= 2]
     relevant_pair_df.drop(columns=['nothing', 'relevance'], inplace=True)
-    
-    # filter out the damaged images
-    damaged_images = {862479, 1646550, 612551, 496995, 927112, 1386399, 696905, 1339180, 1236567}
-    relevant_pair_df = relevant_pair_df[~relevant_pair_df['product'].isin(damaged_images)]
     
     # Reset the index of the filtered DataFrame if needed
     relevant_pair_df = filter_missing_images(relevant_pair_df)
@@ -142,10 +138,12 @@ def preprocess_logits_for_metrics(logits, labels):
 
 # training
 TRAINING_ARGS = TrainingArguments(
-        output_dir="/tmp2/chiuws/",
-        logging_dir="/tmp2/chiuws/",
+        output_dir="/tmp2/chiuws/fine_tuned_GIT_2/GIT-large-coco_pds",
+        logging_dir="/tmp2/chiuws/fine_tuned_GIT_2/tensorboard_logs",
         report_to="tensorboard",
-        learning_rate=5e-5,
+        learning_rate=1e-5,
+        weight_decay=0.01,
+        lr_scheduler_type=SchedulerType.COSINE,
         num_train_epochs=10,
         fp16=True,
         per_device_train_batch_size=16,
