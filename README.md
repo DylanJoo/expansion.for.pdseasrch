@@ -17,6 +17,7 @@ Each files we used are stored at [product-search huggingface](https://huggingfac
 | Original Files                             | \# Examples |
 |:-------------------------------------------|:------------|
 | data/corpus.jsonl                          | 1118658     |
+| data/collection-imgs.jsonl                 | 1480714     |
 | data/qid2query.tsv                         | 30734       |
 | data/product-search-dev.qrels              | 169952      |
 
