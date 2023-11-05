@@ -1,11 +1,15 @@
+#############################################################
+########   please use official docker conainer     ##########
+#############################################################
+
 import torch
 from tqdm import tqdm
 import jsonlines
 from pathlib import Path
-from GIT_zero_shot_infer import GIT_captioning
+from mPLUG_zero_shot_infer import mPLUG_captioning
 
 # path for the images
-IMG_FILE_PATH = "/tmp2/trec/pds/data/images"
+IMG_FILE_PATH = "/root/images"
 
 def generate_captions_and_save(img_directory: str, batch_size: int, output_file: str):
     """
@@ -26,8 +30,8 @@ def generate_captions_and_save(img_directory: str, batch_size: int, output_file:
         for i in tqdm(range(0, len(img_paths), batch_size)):
             batch = img_paths[i: i + batch_size]
 
-            # Generate captions using GIT
-            captions = GIT_captioning(batch)
+            # Generate captions using mPLUG
+            captions = mPLUG_captioning(batch)
 
             # Organize results and write to jsonl file
             for path, caption in zip(batch, captions):
@@ -38,4 +42,4 @@ def generate_captions_and_save(img_directory: str, batch_size: int, output_file:
                 writer.write(result)
 
 if __name__ == "__main__":
-    generate_captions_and_save(IMG_FILE_PATH, batch_size=64, output_file="/tmp2/Kai/caption_data/captions_GIT_large_coco.jsonl")
+    generate_captions_and_save(IMG_FILE_PATH, batch_size=64, output_file="captions_mPLUG_base_coco.jsonl")

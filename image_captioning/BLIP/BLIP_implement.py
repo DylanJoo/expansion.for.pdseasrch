@@ -2,7 +2,7 @@ import torch
 from tqdm import tqdm
 import jsonlines
 from pathlib import Path
-from BLIP import BLIP_captioning
+from BLIP_zero_shot_infer import BLIP_captioning
 
 # path for the images
 IMG_FILE_PATH = "/tmp2/trec/pds/data/images"

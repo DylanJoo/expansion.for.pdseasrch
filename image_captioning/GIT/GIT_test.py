@@ -12,12 +12,16 @@ model = AutoModelForCausalLM.from_pretrained("microsoft/git-large-coco")
 model.to(DEVICE)
 
 image_list = [
-    '/tmp2/chiuws/bag.png', 
+    '/tmp2/chiuws/phone_case.jpg',
+    '/tmp2/chiuws/gadget_bag.jpg',
     '/tmp2/chiuws/bra_top.png', 
+    '/tmp2/chiuws/bird_decoration.png',
+    '/tmp2/chiuws/naruto_doll.jpg',
     '/tmp2/chiuws/card.jpg',
-    '/tmp2/chiuws/gadget_bag.jpg', 
-    '/tmp2/chiuws/moon_tshirt.png', 
-    '/tmp2/chiuws/naruto_doll.jpg'
+    '/tmp2/chiuws/cd.png',
+    '/tmp2/chiuws/starwars_doll.png',
+    '/tmp2/chiuws/women_clothes.png',
+    '/tmp2/chiuws/weird_doll.jpg',
 ]
 
 # 1. Load all images and preprocess them
@@ -38,6 +42,4 @@ key_bert_model = KeyBERT('distilbert-base-nli-mean-tokens')
 
 for caption in generated_captions:
     print(caption)
-    keywords = key_bert_model.extract_keywords(caption, keyphrase_ngram_range=(1, 2), top_n=3)
-    print("key terms:{}".format(keywords))
     print("=================================================")
