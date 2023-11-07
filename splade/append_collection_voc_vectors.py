@@ -7,11 +7,10 @@ from transformers import AutoModelForMaskedLM, AutoTokenizer
 from naver_splade.splade.models.transformer_rep import Splade
 from collections import defaultdict
 import sys
-from datasets import load_dataset
-
-sys.path.insert(0, "/tmp2/jhju/codes.trec.productsearch2023/codes/")
+from datasets import Dataset
 from utils import batch_iterator
 
+USED_META = ['category', 'template', 'attrs', 'info']
 def generate_vocab_vector(docs, model, minimum=0, device='cpu', max_length=256, quantization_factor=1000):
     """
     params: docs: List[str]
@@ -64,39 +63,60 @@ if __name__ == '__main__':
     tokenizer = AutoTokenizer.from_pretrained(args.model_name_or_dir or args.tokenizer_name)
     reverse_voc = {v: k for k, v in tokenizer.vocab.items()}
 
-    # load collection
-    collection = load_dataset('json', data_files=args.collection)['train']
-    n_collection = len(collection)
-    print(collection)
+    # load data
+    collection = []
+    with open(args.collection, 'r') as f:
+        for i, line in enumerate(tqdm(f)):
+            item = json.loads(line.strip())
+            # add metdata
+            metadata = []
+            for k in [m for m in USED_META if m in item.keys()]:
+                v = item[k]
+                if len(v) != 0:
+                    if type(v) == str:
+                        continue
+                    elif type(v) == list:
+                        v = " ".join(v)
+                    elif type(v) == dict:
+                        v = " ".join(v.values())
+                    metadata.append(v)
 
-    # outout writer
-    os.makedirs(args.collection_output.rsplit('/', 1)[0], exist_ok=True)
-    fout = open(args.collection_output, 'w')
+            # add simplified data and metadata
+            metadata = " ".join(metadata)
+            collection.append({
+                    'id': item['doc_id'],
+                    'contents': "{} {} | {}".format(
+                        item['title'], item['description'], metadata
+                    )
+            })
+
+    dataset = Dataset.from_list(collection)
+    print(dataset)
 
     # preparing batch 
     vectors = []
-    for (start, end) in tqdm(
-            batch_iterator(collection, args.batch_size, return_index=True),
-            total=(n_collection//args.batch_size)+1
-    ):
-        batch_collection = collection[start: end]
+    data_iterator = batch_iterator(dataset, args.batch_size, False)
+    for batch in tqdm(data_iterator, total=len(dataset)//args.batch_size+1):
         batch_vectors = generate_vocab_vector(
-                docs=batch_collection['contents'], 
+                docs=batch['contents'], 
                 model=model,
                 minimum=args.minimum,
                 device=args.device,
                 max_length=args.max_length,
                 quantization_factor=args.quantization_factor
         )
-        assert len(batch_collection['contents']) == len(batch_vectors), \
+        assert len(batch['contents']) == len(batch_vectors), \
                 'Mismatched amount of examples'
 
         vectors += batch_vectors
 
+    # outout writer
+    os.makedirs(args.collection_output.rsplit('/', 1)[0], exist_ok=True)
+    fout = open(args.collection_output, 'w')
+
     # collection and re-dump the collections
     for i, example in enumerate(collection):
         example.update({"vector": vectors[i]})
-
         fout.write(json.dumps(example, ensure_ascii=False)+'\n')
 
     fout.close()
