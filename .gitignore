@@ -6,6 +6,7 @@
 data/expanded_corpus/
 data/simplified_corpus/
 data/title_corpus/
+data/splade_corpus/
 data/trec-pds.train.product2query.jsonl
 
 models/
