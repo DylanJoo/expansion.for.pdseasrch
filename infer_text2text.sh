@@ -1,6 +1,4 @@
-
-for ckpt in 20000 18000;do
-    # MODEL=models/t5-base-product2query/checkpoint-${ckpt}
+for ckpt in 20000;do
     MODEL=~/expansion.for.pdseasrch/models_new/t5-base-product2query/checkpoint-${ckpt}
     DIR_OUT=data/expanded_corpus/t5-base-product2query-${ckpt}
     mkdir -p $DIR_OUT
@@ -12,9 +10,9 @@ for ckpt in 20000 18000;do
         --top_k 10 \
         --batch_size 40 \
         --max_src_length 512 \
-        --max_tgt_length 64 \
+        --max_tgt_length 16 \
         --num_return_sequences 10  \
         --output_jsonl $DIR_OUT/corpus.jsonl \
-        --template "{0} | {1}" \
+        --template "{0} | {1} | {2}" \
         --device cuda
 done

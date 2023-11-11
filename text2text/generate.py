@@ -18,7 +18,7 @@ def preprocess(model, tokenizer, batch, config, device, **kwargs):
     # 2) t5-cnndm: pre-trained summarization modeles
     # 2) bart-cnndm: pre-trained summarization models like pegasus or bart
     processed_input = tokenizer(
-            [template.format(batch['title'][i], batch['description'][i]) for i in range(n)],
+            [template.format(batch['title'][i], batch['description'][i], batch['metadata']) for i in range(n)],
             max_length=kwargs.pop('max_src_length', 512),
             truncation=True,
             padding=True,
