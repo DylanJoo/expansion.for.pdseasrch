@@ -1,4 +1,4 @@
-for folder in data/expanded_corpus/t5-base*;do
+for folder in data/expanded_corpus/ckpt*;do
     python -m pyserini.index.lucene \
         --collection JsonCollection \
         --input ${folder} \

@@ -2,11 +2,30 @@
 [TODO] Put this into sparse search
 """
 import os
+import collections
 from tqdm import tqdm 
 import json
 import argparse
 from pyserini.search.lucene import LuceneImpactSearcher
-from utils import load_collection, load_query
+
+def load_query(path):
+    data = collections.defaultdict(str)
+    with open(path, 'r') as f:
+        for line in f:
+            if path.endswith('tsv'):
+                qid, qtext = line.split('\t')
+                data[str(qid.strip())] = qtext.strip()
+            else:
+                raise ValueError("Invalid data extension.")
+    return data
+
+def batch_iterator(iterable, size=1, return_index=False):
+    l = len(iterable)
+    for ndx in range(0, l, size):
+        if return_index:
+            yield (ndx, min(ndx + size, l))
+        else:
+            yield iterable[ndx:min(ndx + size, l)]
 
 def search(args):
     searcher = LuceneImpactSearcher(args.index, args.encoder, args.min_idf)
@@ -34,7 +53,7 @@ def search(args):
             qtexts_batch = qtexts[start: end]
             hits = searcher.batch_search(
                     queries=qtexts_batch, 
-                    q_ids=qids_batch, 
+                    qids=qids_batch, 
                     k=args.k
             )
             for key, value in hits.items():
