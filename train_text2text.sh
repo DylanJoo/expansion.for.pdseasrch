@@ -3,7 +3,7 @@ python3 text2text/train.py \
     --config_name google/t5-v1_1-base \
     --tokenizer_name google/t5-v1_1-base \
     --train_file data/trec-pds.train.product2query.jsonl \
-    --max_src_length 256  \
+    --max_src_length 384  \
     --max_tgt_length 32 \
     --output_dir models/t5-base-product2query \
     --overwrite_output_dir true \
