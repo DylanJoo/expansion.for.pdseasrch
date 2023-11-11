@@ -4,6 +4,8 @@ import collections
 import argparse
 import json
 
+USED_META = ['category', 'template', 'attrs', 'info']
+
 def load_query(path='data/qid2query.tsv'):
     data = {}
     with open(path, 'r') as f:
@@ -18,9 +20,22 @@ def load_corpus(path='data/corpus.jsonl', append=False, key='title'):
         for line in tqdm(f):
             item = json.loads(line.strip())
             docid = item.pop('doc_id')
+            metadata = []
+            for k in [m for m in USED_META if m in item.keys()]:
+                v = item[k]
+                if len(v) != 0:
+                    if type(v) == str:
+                        continue
+                    elif type(v) == list:
+                        v = " ".join(v)
+                    elif type(v) == dict:
+                        v = " ".join(v.values())
+                    metadata.append(v)
+
             data[str(docid)] = {
                     'title': item['title'],
-                    'description': item['description']
+                    'description': item['description'], 
+                    'metadata': " ".join(metadata)
             }
     return data
 
@@ -65,6 +80,7 @@ if __name__ == '__main__':
                 try:
                     example['title'] = corpus[docid]['title']
                     example['description'] = corpus[docid]['description']
+                    example['metadata'] = corpus[docid]['metadata']
                     fout.write(json.dumps(example, ensure_ascii=False)+'\n')
                 except:
                     print('missing product', docid)

@@ -28,3 +28,4 @@ class TrainArgs(Seq2SeqTrainingArguments):
     eval_steps: int = field(default=2500)
     evaluation_strategy: Optional[str] = field(default='steps')
     template: Optional[str] = field(default="{0} {1}")
+    predict_with_generate: bool = field(default=True)
