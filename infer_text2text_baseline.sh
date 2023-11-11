@@ -14,6 +14,7 @@ python text2text/generate.py \
     --max_tgt_length 64 \
     --num_return_sequences 1 \
     --output_jsonl $FILE_OUT \
+    --template 'summarize: {0} | {1} | {2}' \
     --device cuda:2
 
 # bart-large
@@ -30,4 +31,5 @@ python text2text/generate.py \
 #     --num_return_sequences 1  \
 #     --output_jsonl $FILE_OUT \
 #     --early_stopping  \
+#     --template '{0} {1}'\
 #     --device cuda:2

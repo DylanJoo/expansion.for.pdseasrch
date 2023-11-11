@@ -17,8 +17,9 @@ class Product2Query:
     def __call__(self, features: List[Dict[str, Any]]) -> Dict[str, Any]:
 
         inputs = self.tokenizer(
-                [self.template.format(batch['title'], batch['description'])\
-                        for batch in features],
+                [self.template.format(
+                    batch['title'], batch['description'], batch['metadata'],
+                ) for batch in features],
                 max_length=self.max_src_length,
                 truncation=self.truncation,
                 padding=self.padding,
