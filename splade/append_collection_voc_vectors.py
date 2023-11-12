@@ -10,7 +10,6 @@ import sys
 from datasets import Dataset
 from utils import batch_iterator
 
-USED_META = ['category', 'template', 'attrs', 'info']
 def generate_vocab_vector(docs, model, minimum=0, device='cpu', max_length=256, quantization_factor=1000):
     """
     params: docs: List[str]
@@ -68,27 +67,7 @@ if __name__ == '__main__':
     with open(args.collection, 'r') as f:
         for i, line in enumerate(tqdm(f)):
             item = json.loads(line.strip())
-            # add metdata
-            metadata = []
-            for k in [m for m in USED_META if m in item.keys()]:
-                v = item[k]
-                if len(v) != 0:
-                    if type(v) == str:
-                        continue
-                    elif type(v) == list:
-                        v = " ".join(v)
-                    elif type(v) == dict:
-                        v = " ".join(v.values())
-                    metadata.append(v)
-
-            # add simplified data and metadata
-            metadata = " ".join(metadata)
-            collection.append({
-                    'id': item['doc_id'],
-                    'contents': "{} {} | {}".format(
-                        item['title'], item['description'], metadata
-                    )
-            })
+            collection.append(item)
 
     dataset = Dataset.from_list(collection)
     print(dataset)
@@ -111,7 +90,6 @@ if __name__ == '__main__':
         vectors += batch_vectors
 
     # outout writer
-    os.makedirs(args.collection_output.rsplit('/', 1)[0], exist_ok=True)
     fout = open(args.collection_output, 'w')
 
     # collection and re-dump the collections
