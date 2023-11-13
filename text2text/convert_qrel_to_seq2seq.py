@@ -63,6 +63,7 @@ if __name__ == '__main__':
     parser.add_argument("--query", type=str, default='query.tsv')
     parser.add_argument("--collection", type=str, default='sample.jsonl')
     parser.add_argument("--output", type=str, default='data/trec-pds.train.product2query.jsonl')
+    parser.add_argument("--thres", type=int, default=2)
     args = parser.parse_args()
 
     # load data
@@ -70,7 +71,7 @@ if __name__ == '__main__':
     print('load query: done')
     corpus = load_corpus(args.collection)
     print('load corpus: done')
-    pqrels, _ = load_qrels(args.qrels, 2)
+    pqrels, _ = load_qrels(args.qrels, args.thres)
     print('load qrels: done') # only used positive ones.
 
     with open(args.output, 'w') as fout:

@@ -16,6 +16,7 @@ class ModelArgs:
 class DataArgs:
     train_file: Optional[str] = field(default=None)
     eval_file: Optional[str] = field(default=None)
+    image_dir: Optional[str] = field(default=None)
     max_src_length: int = field(default=256)
     max_tgt_length: int = field(default=16)
 
@@ -27,4 +28,5 @@ class TrainArgs(Seq2SeqTrainingArguments):
     save_steps: int = field(default=5000)
     eval_steps: int = field(default=2500)
     evaluation_strategy: Optional[str] = field(default='steps')
-    template: Optional[str] = field(default="{0} {1}")
+    template_src: Optional[str] = field(default="{0} {1}")
+    template_tgt: Optional[str] = field(default="{0}")

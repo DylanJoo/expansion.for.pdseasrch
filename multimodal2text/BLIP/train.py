@@ -27,13 +27,15 @@ def main():
     # Data: collator
     datacollator_classes = {"product2query": datacollator.Product2Query}
     data_collator = datacollator_classes[model_args.datacollator](
-            tokenizer=tokenizer,
+            processor=processor,
+            image_dir=data_args.image_dir,
+            template_src=training_args.template_src,
+            template_tgt=training_args.template_tgt,
             max_src_length=data_args.max_src_length,
-            max_tgt_length=data_args.max_tgt_length,
-            template=training_args.template
+            max_tgt_length=data_args.max_tgt_length
     )
 
-    trainer = Seq2SeqTrainer(
+    trainer = Trainer(
             model=model, 
             args=training_args,
             train_dataset=dataset['train'],
@@ -41,18 +43,7 @@ def main():
             data_collator=data_collator,
     )
     
-    trainer = Seq2SeqTrainer(
-            model=model, 
-            args=training_args,
-            train_dataset=dataset['train'],
-            eval_dataset=dataset['test'],
-            data_collator=data_collator,
-    )
-
-    # ***** strat training *****
-    results = trainer.train(
-            resume_from_checkpoint=training_args.resume_from_checkpoint
-    )
+    results = trainer.train()
 
     return results
 

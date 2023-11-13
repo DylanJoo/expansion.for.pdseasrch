@@ -1,0 +1,29 @@
+export CUDA_VISIBLE_DEVICES=2
+python3 multimodal2text/BLIP/train.py \
+    --model_name_or_path Salesforce/blip-vqa-base \
+    --config_name Salesforce/blip-vqa-base \
+    --processor_name Salesforce/blip-vqa-base \
+    --train_file data/trec-pds.train.m2t.product2query.jsonl \
+    --image_dir data/images \
+    --max_src_length 64 \
+    --max_tgt_length 16 \
+    --output_dir models/blip-vqa-base-product2query/ \
+    --overwrite_output_dir true \
+    --do_train --do_eval \
+    --save_strategy steps \
+    --max_steps 100 \
+    --save_steps 50 \
+    --eval_steps 25 \
+    --save_strategy steps \
+    --evaluation_strategy steps \
+    --per_device_train_batch_size 32 \
+    --per_device_eval_batch_size 32 \
+    --learning_rate 5e-5 \
+    --lr_scheduler_type constant \
+    --remove_unused_columns false \
+    --report_to wandb \
+    --overwrite_output_dir true \
+    --template_src "What is the query for this product? title: {0} query: "\
+    --template_tgt "{0}" \
+    --fp16 true \
+    --run_name blip-vqa-base

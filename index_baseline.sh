@@ -1,10 +1,10 @@
-mkdir -p indexing
 mkdir -p data
+mkdir -p indexing
 
 # title
 python3 text2text/filter_corpus.py \
     --input_jsonl data/corpus.jsonl \
-    --output_dir data/simplified_corpus \
+    --output_dir data/title_corpus \
     --setting title
 
 python -m pyserini.index.lucene \
