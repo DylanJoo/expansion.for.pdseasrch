@@ -8,7 +8,7 @@ from transformers import Seq2SeqTrainingArguments
 class ModelArgs:
     model_name_or_path: Optional[str] = field(default=None)
     config_name: Optional[str] = field(default=None)
-    tokenizer_name: Optional[str] = field(default=None)
+    processor_name: Optional[str] = field(default=None)
     use_fast_tokenizer: bool = field(default=True)
     datacollator: str = field(default='product2query')
 

@@ -1,14 +1,11 @@
 import os
 import sys
-from typing import Optional, Union
-from transformers import (
-    HfArgumentParser,
-    AutoModelForCausalLM,
-    AutoProcessor
-)
+from transformers import AutoProcessor, BlipForQuestionAnswering
+from transformers import HfArgumentParser
+from transformers import Trainer
+
 from arguments import ModelArgs, DataArgs, TrainArgs
 from datasets import load_dataset
-from transformers import Seq2SeqTrainer
 import datacollator 
 
 def main():
@@ -20,7 +17,7 @@ def main():
         model_args, data_args, training_args = parser.parse_args_into_dataclasses()
 
     processor = AutoProcessor.from_pretrained(model_args.processor_name)
-    model = AutoModelForCausalLM.from_pretrained(model_args.model_name_or_path)
+    model = BlipForQuestionAnswering.from_pretrained(model_args.model_name_or_path)
     
     # Data: dataset
     dataset = load_dataset('json', data_files=data_args.train_file)['train']
