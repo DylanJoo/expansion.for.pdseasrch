@@ -13,6 +13,6 @@ for ckpt in 20000;do
         --max_tgt_length 16 \
         --num_return_sequences 10  \
         --output_jsonl $DIR_OUT/corpus.jsonl \
-        --template "{0} | {1} | {2}" \
+        --template 'summarize: {0} | {1} | {2}' \
         --device cuda
 done

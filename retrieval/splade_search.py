@@ -7,6 +7,7 @@ from tqdm import tqdm
 import json
 import argparse
 from pyserini.search.lucene import LuceneImpactSearcher
+from pyserini.encode import SpladeQueryEncoder
 
 def load_query(path):
     data = collections.defaultdict(str)
@@ -28,7 +29,8 @@ def batch_iterator(iterable, size=1, return_index=False):
             yield iterable[ndx:min(ndx + size, l)]
 
 def search(args):
-    searcher = LuceneImpactSearcher(args.index, args.encoder, args.min_idf)
+    query_encoder = SpladeQueryEncoder(args.encoder, device=args.device)
+    searcher = LuceneImpactSearcher(args.index, query_encoder, args.min_idf)
 
     # for example
     query = load_query(args.query)
@@ -70,6 +72,7 @@ if __name__ == '__main__':
     # special args
     parser.add_argument("--query", default=None, type=str)
     parser.add_argument("--batch_size", default=1, type=int)
+    parser.add_argument("--device", default='cpu', type=str)
     args = parser.parse_args()
 
     os.makedirs('runs', exist_ok=True)

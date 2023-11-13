@@ -21,5 +21,5 @@ python3 text2text/train.py \
     --remove_unused_columns false \
     --report_to wandb \
     --overwrite_output_dir true \
-    --template "{0} | {1} | {2}" \
+    --template "summarize: {0} | {1} | {2}" \
     --run_name pds-t2t-1e3

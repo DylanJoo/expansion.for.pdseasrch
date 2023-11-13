@@ -7,13 +7,13 @@ python text2text/generate.py \
     --collection data/corpus.jsonl \
     --model_name $MODEL \
     --model_hf_name t5-base \
-    --num_beams 4 \
+    --num_beams 2 \
     --batch_size 64 \
     --max_src_length 512 \
     --max_tgt_length 32 \
     --num_return_sequences 1 \
     --output_jsonl $DIR_OUT/corpus.jsonl \
-    --template 'summarize: {0} | {1} | {2}' \
+    --template 'summarize: title: {0} description: {1}' \
     --device cuda:2
 
 # bart-large
@@ -23,7 +23,7 @@ python text2text/generate.py \
     --collection data/corpus.jsonl \
     --model_name $MODEL \
     --model_hf_name $MODEL \
-    --num_beams 4 \
+    --num_beams 2 \
     --batch_size 36 \
     --max_src_length 512 \
     --max_tgt_length 64 \
