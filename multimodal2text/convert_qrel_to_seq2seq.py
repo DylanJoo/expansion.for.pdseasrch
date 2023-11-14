@@ -3,6 +3,7 @@ from tqdm import tqdm
 import collections
 import argparse
 import json
+from PIL import Image
 
 USED_META = ['category', 'template', 'attrs', 'info']
 
@@ -14,7 +15,7 @@ def load_query(path='data/qid2query.tsv'):
             data[str(qid.strip())] = qtext.strip()
     return data
 
-def load_images(path):
+def load_images(path, local=None):
     """
     This image collection is parsed from `corpus.jsonl`; thus,
     the amount of images must be smaller than text.
@@ -24,8 +25,17 @@ def load_images(path):
         for line in tqdm(f):
             item = json.loads(line.strip())
             docid = item.pop('id')
-            data[str(docid)] = item.pop('url', 0)
-            # data[str(docid)] = item.pop('contents', 0)
+            if local:
+                path = item.pop('contents')
+                try:
+                    Image.open(os.path.join(local, path)).verify()
+                    data[str(docid)] = os.path.join(local, path)
+                except:
+                    continue
+            else:
+                data[str(docid)] = item.pop('url')
+
+    print('total available images:', len(data))
     return data
 
 def load_corpus(path='data/corpus.jsonl', append=False, key='title'):
@@ -77,6 +87,7 @@ if __name__ == '__main__':
     parser.add_argument("--query", type=str, default='query.tsv')
     parser.add_argument("--collection", type=str, default='sample.jsonl')
     parser.add_argument("--img_collection", type=str, default='sample.jsonl')
+    parser.add_argument("--img_collection_local", type=str, default=None)
     parser.add_argument("--output", type=str, default='data/trec-pds.train.product2query.jsonl')
     parser.add_argument("--thres", type=int, default=2)
     args = parser.parse_args()
@@ -86,7 +97,7 @@ if __name__ == '__main__':
     print('load query: done')
     corpus = load_corpus(args.collection)
     print('load corpus: done')
-    images = load_images(args.img_collection)
+    images = load_images(args.img_collection, args.img_collection_local)
     print('load images: done')
     pqrels, _ = load_qrels(args.qrels, args.thres)
     print('load qrels: done') # only used positive ones.
