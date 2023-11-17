@@ -17,7 +17,7 @@ Each files we used are stored at [product-search huggingface](https://huggingfac
 | Original Files                                          | \# Examples       |
 |:------------------------------------------------------- |:------------------|
 | /home/jhju/datasets/pdsearch/corpus.jsonl               | 1118658           |
-| /home/jhju/datasets/pdsearch/collections/\*             | 791108 (795498)   |
+| /home/jhju/datasets/pdsearch/images/\*                  | 791108 (795498)   |
 | /home/jhju/datasets/pdsearch/qid2query.tsv              | 30734             |
 | /home/jhju/datasets/pdsearch/qid2query-dev-filtered.tsv | 8940              |
 | /home/jhju/datasets/pdsearch/product-search-dev-filtered.qrels | 169718     |
