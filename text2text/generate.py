@@ -128,7 +128,7 @@ if __name__ == '__main__':
                 summarized_text = " ".join(summarized_texts[start: end])
 
             fout.write(json.dumps({
-                "id": str(docid), 
+                "id": docid, 
                 "contents": title + " " + summarized_text
             })+'\n')
 
