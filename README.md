@@ -24,9 +24,9 @@ Each files we used are stored at [product-search huggingface](https://huggingfac
 
 | Training Files                             | \# Examples |
 |:-------------------------------------------|:------------|
-| data/trec-pds.train.m2t.product2query.jsonl| 307492      |
+| data/trec-pds.train.m2t.product2query.jsonl| 224719      |
 | data/trec-pds.train.i2t.product2query.jsonl| ??????      |
-| data/trec-pds.train.t2t.product2query.jsonl| 224719      |
+| data/trec-pds.train.t2t.product2query.jsonl| 307492      |
 
 
 Note that some of our prepreocessed datasets/files can be found at this [huggingface hub](https://huggingface.co/datasets/DylanJHJ/pds2023/tree/main).
