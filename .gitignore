@@ -9,7 +9,9 @@ data/simplified_corpus/
 data/title_corpus/
 data/full_corpus/
 data/splade_corpus/
-data/trec-pds.train.product2query.jsonl
+data/trec-pds.train.m2t.product2query.jsonl
+data/trec-pds.train.t2t.product2query.jsonl
+data/trec-pds.train.i2t.product2query.jsonl
 data/images
 
 # index files
