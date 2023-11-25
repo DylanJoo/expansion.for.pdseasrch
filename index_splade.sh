@@ -1,22 +1,20 @@
 # append the document splade vectors
-COLLECTION=data/corpus.jsonl 
-COLLECTION_DIR=data/splade_corpus
-MODEL_NAME=naver/splade-cocondenser-ensembledistil
-python splade/append_collection_voc_vectors.py \
-    --collection $COLLECTION \
-    --collection_output $COLLECTION_DIR/corpus.jsonl \
-    --model_name_or_dir $MODEL_NAME \
-    --batch_size 64 \
-    --max_length 384 \
-    --device cuda:2 \
-    --quantization_factor 100
+mkdir -p data/splade_corpus/
+# MODEL_NAME=naver/splade-cocondenser-ensembledistil
+# python splade/append_collection_voc_vectors.py \
+#     --collection data/full_corpus/corpus.jsonl \
+#     --collection_output data/splade_corpus/corpus.jsonl \
+#     --model_name_or_dir $MODEL_NAME \
+#     --batch_size 128 \
+#     --max_length 512 \
+#     --device cuda \
+#     --quantization_factor 100
 
 # pyserini indexing with pretokenized impact vectors
-INDEX=indexing/trec-pds-full-splade
 python -m pyserini.index.lucene \
   --collection JsonVectorCollection \
-  --input $COLLECTION_DIR \
-  --index $INDEX \
+  --input data/splade_corpus \
+  --index indexing/trec-pds-full-splade \
   --generator DefaultLuceneDocumentGenerator \
   --threads 36 \
   --impact --pretokenized

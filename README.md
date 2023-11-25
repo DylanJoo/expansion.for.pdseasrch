@@ -14,20 +14,20 @@ We used the dataset collected by TREC Prodcut Search Track.
 Each files we used are stored at [product-search huggingface](https://huggingface.co/trec-product-search). 
 > The files has connect to my datasets directory: `/home/jhju/datasets/`
 
-| Original Files                             | \# Examples |
-|:-------------------------------------------|:------------|
-| data/corpus.jsonl                          | 1118658     |
-| data/collection-imgs.jsonl                 | 1480714     |
-| data/qid2query.tsv                         | 30734       |
-| data/product-search-dev.qrels              | 169952      |
+| Original Files                                          | \# Examples       |
+|:------------------------------------------------------- |:------------------|
+| /home/jhju/datasets/pdsearch/corpus.jsonl               | 1118658           |
+| /home/jhju/datasets/pdsearch/images/\*                  | 791108 (795498)   |
+| /home/jhju/datasets/pdsearch/qid2query.tsv              | 30734             |
+| /home/jhju/datasets/pdsearch/qid2query-dev-filtered.tsv | 8940              |
+| /home/jhju/datasets/pdsearch/product-search-dev-filtered.qrels | 169718     |
 
-| Preprocessed Files                         | \# Examples |
+| Training Files                             | \# Examples |
 |:-------------------------------------------|:------------|
-| data/simplified_corpus/corpus.jsonl        | 1080262     |
-| data/qid2query-dev-filtered.tsv            | 8940        |
-| data/product-search-dev-filtered.qrels     | 169718      |
-| trec-pds.train.product2query.jsonl         | 307492      |
-    
+| data/trec-pds.train.m2t.product2query.jsonl| 224719      |
+| data/trec-pds.train.i2t.product2query.jsonl| ??????      |
+| data/trec-pds.train.t2t.product2query.jsonl| 307492      |
+
 
 Note that some of our prepreocessed datasets/files can be found at this [huggingface hub](https://huggingface.co/datasets/DylanJHJ/pds2023/tree/main).
 
