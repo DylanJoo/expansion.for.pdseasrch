@@ -8,7 +8,7 @@ from transformers import Seq2SeqTrainingArguments
 class ModelArgs:
     model_name_or_path: Optional[str] = field(default=None)
     config_name: Optional[str] = field(default=None)
-    tokenizer_name: Optional[str] = field(default=None)
+    processor_name: Optional[str] = field(default=None)
     use_fast_tokenizer: bool = field(default=True)
     datacollator: str = field(default='product2query')
 
@@ -27,4 +27,6 @@ class TrainArgs(Seq2SeqTrainingArguments):
     save_steps: int = field(default=5000)
     eval_steps: int = field(default=2500)
     evaluation_strategy: Optional[str] = field(default='steps')
-    template: Optional[str] = field(default="{0} {1}")
+    template_src: Optional[str] = field(default=None)
+    template_tgt: Optional[str] = field(default=None)
+    predict_with_generate: bool = field(default=True)

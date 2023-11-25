@@ -124,9 +124,7 @@ if __name__ == '__main__':
             if args.num_return_sequences > 1:
                 start = i * args.num_return_sequences
                 end = start+args.num_return_sequences
-                # concat
                 summarized_text = ". ".join(summarized_texts[start: end])
-                # summarized_text = summarized_texts[start: end]
             else:
                 summarized_text = summarized_texts[i]
 
