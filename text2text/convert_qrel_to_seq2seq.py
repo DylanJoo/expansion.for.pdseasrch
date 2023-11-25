@@ -5,13 +5,41 @@ import argparse
 import json
 
 USED_META = ['category', 'template', 'attrs', 'info']
+def extract_metadata(item):
+    metadata = []
+    avail_meta = [m for m in USED_META if m in item.keys()]
+    for k in avail_meta:
+        v = item[k]
+        if len(v) != 0:
+            if type(v) == str:
+                continue
+            elif type(v) == list:
+                v = " ".join(v)
+            elif type(v) == dict:
+                v = " ".join(v.values())
+            metadata.append(v)
+    return " ".join(metadata)
 
 def load_query(path='data/qid2query.tsv'):
     data = {}
     with open(path, 'r') as f:
         for line in f:
-            qid, qtext = line.split('\t')
-            data[str(qid.strip())] = qtext.strip()
+            try:
+                qid, qtext = line.strip().split('\t')
+            except:
+                qid = line.strip()
+                qtext = ""
+                print("Filtered query: {}\t{}".format(qid, qtext))
+
+            qtext_toks = qtext.split()
+            if ( len(qtext_toks) == 1) and (qtext_toks[0].startswith("B")):
+                print("Filtered query: {}\t{}".format(qid, qtext))
+            elif ( len(qtext_toks) == 1) and (qtext_toks[0] == ""):
+                print("Filtered query: {}\t{}".format(qid, qtext))
+            elif qtext == "":
+                print("Filtered query: {}\t{}".format(qid, qtext))
+            else:
+                data[str(qid.strip())] = qtext
     return data
 
 def load_corpus(path='data/corpus.jsonl', append=False, key='title'):
@@ -20,23 +48,13 @@ def load_corpus(path='data/corpus.jsonl', append=False, key='title'):
         for line in tqdm(f):
             item = json.loads(line.strip())
             docid = item.pop('doc_id')
-            metadata = []
-            for k in [m for m in USED_META if m in item.keys()]:
-                v = item[k]
-                if len(v) != 0:
-                    if type(v) == str:
-                        continue
-                    elif type(v) == list:
-                        v = " ".join(v)
-                    elif type(v) == dict:
-                        v = " ".join(v.values())
-                    metadata.append(v)
-
-            data[str(docid)] = {
-                    'title': item['title'],
-                    'description': item['description'], 
-                    'metadata': " ".join(metadata)
-            }
+            # filter out invalid products
+            if (item['title'] + item['description']).strip() != "":
+                data[str(docid)] = {
+                        'title': item['title'],
+                        'description': item['description'], 
+                        'metadata': extract_metadata(item)
+                }
     return data
 
 def load_qrels(path='data/product-search-train.qrels', thres=1):
@@ -77,12 +95,12 @@ if __name__ == '__main__':
     with open(args.output, 'w') as fout:
         for qid in tqdm(pqrels, total=len(pqrels)):
             for docid in pqrels[qid]:
-                example = {'query': queries[qid]}
                 try:
+                    example = {'query': queries[qid]}
                     example['title'] = corpus[docid]['title']
                     example['description'] = corpus[docid]['description']
                     example['metadata'] = corpus[docid]['metadata']
                     fout.write(json.dumps(example, ensure_ascii=False)+'\n')
                 except:
-                    print('missing product', docid)
+                    print('missing query or product', docid)
 
