@@ -121,15 +121,18 @@ if __name__ == '__main__':
         for i in range(len(batch_ids)):
             docid = batch_ids[i]
             title = batch_titles[i]
-            summarized_text = summarized_texts[i]
             if args.num_return_sequences > 1:
                 start = i * args.num_return_sequences
                 end = start+args.num_return_sequences
-                summarized_text = " ".join(summarized_texts[start: end])
+                # concat
+                summarized_text = ". ".join(summarized_texts[start: end])
+                # summarized_text = summarized_texts[start: end]
+            else:
+                summarized_text = summarized_texts[i]
 
             fout.write(json.dumps({
                 "id": str(docid), 
-                "contents": title + " " + summarized_text
+                "contents": title + " . " + summarized_text,
             })+'\n')
 
     fout.close()
