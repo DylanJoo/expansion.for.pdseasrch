@@ -6,4 +6,3 @@ python -m pyserini.index.lucene \
     --index indexing/trec-pds-expanded-${folder##*/}/ \
     --generator DefaultLuceneDocumentGenerator \
     --threads 4
-

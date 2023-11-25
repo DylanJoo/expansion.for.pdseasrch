@@ -4,6 +4,7 @@
 **log
 
 # data
+data/pdsearch-corpus/
 data/expanded_corpus/
 data/simplified_corpus/
 data/title_corpus/
@@ -25,3 +26,8 @@ results/
 
 # IR results
 runs/
+
+# other testing
+test.sh
+prep_t2t.sh
+prep_m2t.sh

@@ -3,6 +3,8 @@ from tqdm import tqdm
 import collections
 import argparse
 import json
+from PIL import Image
+from datasets import Dataset
 
 USED_META = ['category', 'template', 'attrs', 'info']
 def extract_metadata(item):
@@ -40,6 +42,16 @@ def load_query(path='data/qid2query.tsv'):
                 print("Filtered query: {}\t{}".format(qid, qtext))
             else:
                 data[str(qid.strip())] = qtext
+    return data
+
+def load_images(path):
+    data = {}
+    with open(path, 'r') as f:
+        for line in tqdm(f):
+            docid = line.strip()
+            filename = os.path.join('/home/jhju/datasets/pdsearch/images/', f"{docid}.jpg")
+            data[docid] = filename
+    print("total available images:", len(data))
     return data
 
 def load_corpus(path='data/corpus.jsonl', append=False, key='title'):
@@ -80,6 +92,7 @@ if __name__ == '__main__':
     parser.add_argument("--qrels", type=str, default='sample.qrels')
     parser.add_argument("--query", type=str, default='query.tsv')
     parser.add_argument("--collection", type=str, default='sample.jsonl')
+    parser.add_argument("--img_collection", type=str, default='sample.jsonl')
     parser.add_argument("--output", type=str, default='data/trec-pds.train.product2query.jsonl')
     parser.add_argument("--thres", type=int, default=2)
     args = parser.parse_args()
@@ -89,6 +102,8 @@ if __name__ == '__main__':
     print('load query: done')
     corpus = load_corpus(args.collection)
     print('load corpus: done')
+    images = load_images(args.img_collection)
+    print('load images: done')
     pqrels, _ = load_qrels(args.qrels, args.thres)
     print('load qrels: done') # only used positive ones.
 
@@ -100,7 +115,8 @@ if __name__ == '__main__':
                     example['title'] = corpus[docid]['title']
                     example['description'] = corpus[docid]['description']
                     example['metadata'] = corpus[docid]['metadata']
+                    example['image'] = images[docid]
                     fout.write(json.dumps(example, ensure_ascii=False)+'\n')
                 except:
-                    print('missing query or product', docid)
+                    print('missing product or query', docid)
 
