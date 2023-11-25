@@ -24,5 +24,4 @@ python3 multimodal2text/BLIP/train.py \
     --remove_unused_columns false \
     --report_to wandb \
     --overwrite_output_dir true \
-    --template_src "A picture of"\
     --run_name blip-caption-base-pds

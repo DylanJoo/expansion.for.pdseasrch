@@ -16,7 +16,7 @@ class Product2Query:
 
     def __call__(self, features: List[Dict[str, Any]]) -> Dict[str, Any]:
 
-        images = [Image.open(b['image']).convert('RGB') for b in features]
+        images = [Image.open(b['image']).convert('RGB').resize((384, 384)) for b in features]
         texts = [self.template_src.format(b['title']) for b in features]
         labels = [self.template_tgt.format(b['query']) for b in features]
 

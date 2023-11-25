@@ -8,9 +8,10 @@ from transformers import GenerationConfig, AutoConfig
 from datasets import Dataset
 from tools import batch_iterator, load_images
 
-def inference(model, processor, batch, config, device, **kwargs):
-    images = [Image.open(img).convert('RGB') for img in batch['image']]
-    template = kwargs['template_src']
+def inference(model, processor, batch, config, device, template_src, **kwargs):
+    images = [Image.open(img).convert('RGB').resize((64, 64))\
+            for img in batch['image']]
+    template = template_src
     if template:
         texts = [template.format(title) for title in batch['title']]
     else:
@@ -119,20 +120,20 @@ if __name__ == '__main__':
             if args.num_return_sequences > 1:
                 start = i * args.num_return_sequences
                 end = start+args.num_return_sequences
-                generated_text = " ".join(generated_texts[start: end])
+                generated_text = ". ".join(generated_texts[start: end])
             else:
                 generated_text = generated_texts[i]
 
             fout.write(json.dumps({
                 "id": str(docid), 
-                "contents": title + " . " + generated_text
+                "contents": title + " . " + generated_text,
             })+'\n')
 
     # inference: text only
     for data in dataset_onlytext: 
         fout.write(json.dumps({
             "id": str(data['doc_id']),
-            "contents": data['title']
+            "contents": data['title'],
         })+'\n')
 
     fout.close()

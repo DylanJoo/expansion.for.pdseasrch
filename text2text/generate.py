@@ -125,11 +125,11 @@ if __name__ == '__main__':
             if args.num_return_sequences > 1:
                 start = i * args.num_return_sequences
                 end = start+args.num_return_sequences
-                summarized_text = " ".join(summarized_texts[start: end])
+                summarized_text = ". ".join(summarized_texts[start: end])
 
             fout.write(json.dumps({
                 "id": docid, 
-                "contents": title + " " + summarized_text
+                "contents": title + " . " + summarized_text
             })+'\n')
 
     fout.close()

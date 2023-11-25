@@ -1,4 +1,4 @@
-export CUDA_VISIBLE_DEVICES=0
+export CUDA_VISIBLE_DEVICES=2
 python3 multimodal2text/BLIP/train.py \
     --model_name_or_path Salesforce/blip-vqa-base \
     --config_name Salesforce/blip-vqa-base \
@@ -27,4 +27,4 @@ python3 multimodal2text/BLIP/train.py \
     --overwrite_output_dir true \
     --template_src "{0} What is the possible query for this product?"\
     --template_tgt "{0}" \
-    --run_name blip-vqa-base-pds
+    --run_name blip-vqa-base-pds-new

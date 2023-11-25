@@ -23,8 +23,8 @@ def load_images(path):
     # data_dir = os.path.join(path.rsplit('/', 1)[0], 'collection')
     with open(path, 'r') as f:
         for line in tqdm(f):
-            filename = line.strip()
-            docid = filename.rsplit('/', 1)[-1].replace(".jpg", "")
+            docid = line.strip()
+            filename = os.path.join('/home/jhju/datasets/pdsearch/images/', f"{docid}.jpg")
             data[docid] = filename
     print("total available images:", len(data))
     return data
