@@ -26,15 +26,16 @@ class Product2Query:
                 return_tensors=self.return_tensors
         )
 
-        targets_ids = self.tokenizer(
+        targets = self.tokenizer(
                 [batch['query'] for batch in features],
                 max_length=self.max_tgt_length,
                 truncation=self.truncation,
                 padding=self.padding,
                 return_tensors=self.return_tensors
-        ).input_ids
-        targets_ids[targets_ids == self.tokenizer.pad_token_id] = -100
-        inputs['labels'] = targets_ids
+        )
+        target_ids = targets.input_ids
+        target_ids[target_ids == self.tokenizer.pad_token_id] = -100
+        inputs['labels'] = target_ids
 
         return inputs
 
