@@ -1,5 +1,5 @@
 import os
-os.environ["CUDA_VISIBLE_DEVICES"] = "1"
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 from transformers import TrainingArguments, Trainer, SchedulerType
 from transformers import AutoProcessor, BlipForConditionalGeneration
@@ -10,13 +10,11 @@ from evaluate import load
 import pandas as pd
 import numpy as np
 
-torch.cuda.empty_cache()
-
 random_seed = 42
 np.random.seed(random_seed)
 
 # path for the images
-IMG_FILE_PATH = "/tmp2/trec/pds/data/images/"
+IMG_FILE_PATH = "/home/jhju/datasets/pdsearch/images/"
 
 # checkpoint for pretrained model
 CHECKPOINT = "Salesforce/blip-image-captioning-base"
@@ -51,7 +49,7 @@ def filter_missing_images(df: pd.DataFrame):
     return df_cleaned
 
 def prepare_data():
-    qrels_df = pd.read_csv("/tmp2/chiuws/expansion.for.pdseasrch/data/product-search-dev-filtered.qrels", sep='\t', header=None)
+    qrels_df = pd.read_csv("/home/jhju/datasets/pdsearch/product-search-train-filtered.qrels", sep='\t', header=None)
     qrels_df.columns = ['qid', 'nothing', 'product', 'relevance']
     relevant_pair_df = qrels_df[qrels_df['relevance'] >= 2]
     relevant_pair_df.drop(columns=['nothing', 'relevance'], inplace=True)
@@ -76,7 +74,7 @@ def prepare_data():
     validation_df.reset_index(drop=True, inplace=True)
 
     # Load the query data
-    query_df = pd.read_csv("/tmp2/chiuws/expansion.for.pdseasrch/data/qid2query-dev-filtered.tsv", sep='\t', header=None)
+    query_df = pd.read_csv("/home/jhju/datasets/pdsearch/qid2query.tsv", sep='\t', header=None)
     query_df.columns = ["qid", "query"]
 
     # Merging the train_df with query_df
@@ -137,13 +135,13 @@ def preprocess_logits_for_metrics(logits, labels):
 
 # training
 TRAINING_ARGS = TrainingArguments(
-        output_dir="/tmp2/chiuws/fine_tuned_BLIP_2/BLIP-base_pds",
-        logging_dir="/tmp2/chiuws/fine_tuned_BLIP_2/tensorboard_logs",
+        output_dir="/tmp2/chiuws/fine_tuned_BLIP/BLIP-base_pds",
+        logging_dir="/tmp2/chiuws/fine_tuned_BLIP/tensorboard_logs",
         report_to="tensorboard",
         learning_rate=1e-5,
         weight_decay=0.01,
         lr_scheduler_type=SchedulerType.COSINE,
-        num_train_epochs=10,
+        num_train_epochs=5,
         fp16=True,
         per_device_train_batch_size=16,
         per_device_eval_batch_size=16,
@@ -153,7 +151,7 @@ TRAINING_ARGS = TrainingArguments(
         eval_steps=2000,
         save_strategy="steps",
         save_steps=2000,
-        logging_steps=100,
+        logging_steps=500,
         remove_unused_columns=False,
         push_to_hub=False,
         label_names=["labels"],

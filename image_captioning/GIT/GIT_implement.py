@@ -1,15 +1,15 @@
-import torch
+import os
 from tqdm import tqdm
 import jsonlines
-from pathlib import Path
-from GIT_zero_shot_infer import GIT_captioning
+from GIT_infer import GIT_captioning
 
 # path for the images
-IMG_FILE_PATH = "/tmp2/trec/pds/data/images"
+IMAGE2TEXT = "/tmp2/chiuws/expansion.for.pdseasrch/data/image2text.jsonl"
+IMG_PATH_FILE = "/home/jhju/datasets/pdsearch/images"
 
-def generate_captions_and_save(img_directory: str, batch_size: int, output_file: str):
+def generate_captions_and_save(jsonl_file: str, batch_size: int, output_file: str):
     """
-    Generate captions for images in the directory using BLIP2_captioning and save the results in a jsonl file.
+    Generate captions for images in the directory using BLIP_captioning and save the results in a jsonl file.
 
     Args:
     - img_directory (str): Path to the directory containing images.
@@ -18,7 +18,12 @@ def generate_captions_and_save(img_directory: str, batch_size: int, output_file:
     """
 
     # Collect all image paths in the directory
-    img_paths = [str(p) for p in Path(img_directory).rglob("*.jpg")]
+    img_paths = []
+    with jsonlines.open(jsonl_file, 'r') as file:
+        for line in file:
+            # Extract and print the image filename
+            image_filename = line.get('image')
+            img_paths.append(os.path.join(IMG_PATH_FILE, image_filename))
     
     # Open the output file in write mode
     with jsonlines.open(output_file, mode='w') as writer:
@@ -26,16 +31,17 @@ def generate_captions_and_save(img_directory: str, batch_size: int, output_file:
         for i in tqdm(range(0, len(img_paths), batch_size)):
             batch = img_paths[i: i + batch_size]
 
-            # Generate captions using GIT
+            # Generate captions BLIP
             captions = GIT_captioning(batch)
 
             # Organize results and write to jsonl file
             for path, caption in zip(batch, captions):
                 result = {
-                    "file_name": Path(path).name,
+                    "doc_id": path.split('/')[-1].split('.')[0],
                     "caption": caption
                 }
                 writer.write(result)
 
+
 if __name__ == "__main__":
-    generate_captions_and_save(IMG_FILE_PATH, batch_size=64, output_file="/tmp2/Kai/caption_data/captions_GIT_large_coco.jsonl")
+    generate_captions_and_save(IMAGE2TEXT, batch_size=128, output_file="/tmp2/Kai/caption_data/captions_GIT_base.jsonl")

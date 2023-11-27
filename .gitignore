@@ -3,6 +3,8 @@
 **err
 **log
 
+.DS_Store
+
 data/expanded_corpus/
 data/simplified_corpus/
 data/title_corpus/

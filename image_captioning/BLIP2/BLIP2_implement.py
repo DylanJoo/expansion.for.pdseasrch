@@ -2,7 +2,7 @@ import torch
 from tqdm import tqdm
 import jsonlines
 from pathlib import Path
-from BLIP2 import BLIP2_captioning
+from BLIP2_infer import BLIP2_captioning
 
 
 DEVICE = "cuda:1" if torch.cuda.is_available() else "cpu"

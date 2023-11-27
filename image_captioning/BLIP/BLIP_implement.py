@@ -1,13 +1,14 @@
-import torch
+import os
 from tqdm import tqdm
 import jsonlines
-from pathlib import Path
-from BLIP_zero_shot_infer import BLIP_captioning
+from BLIP_infer import BLIP_captioning
 
 # path for the images
-IMG_FILE_PATH = "/tmp2/trec/pds/data/images"
+IMAGE2TEXT = "/tmp2/chiuws/expansion.for.pdseasrch/data/image2text.jsonl"
+IMG_PATH_FILE = "/home/jhju/datasets/pdsearch/images"
+APPEND_QUERY_COUNT = 10
 
-def generate_captions_and_save(img_directory: str, batch_size: int, output_file: str):
+def generate_captions_and_save(jsonl_file: str, batch_size: int, output_file: str):
     """
     Generate captions for images in the directory using BLIP_captioning and save the results in a jsonl file.
 
@@ -18,7 +19,12 @@ def generate_captions_and_save(img_directory: str, batch_size: int, output_file:
     """
 
     # Collect all image paths in the directory
-    img_paths = [str(p) for p in Path(img_directory).rglob("*.jpg")]
+    img_paths = []
+    with jsonlines.open(jsonl_file, 'r') as file:
+        for line in file:
+            # Extract and print the image filename
+            image_filename = line.get('image')
+            img_paths.append(os.path.join(IMG_PATH_FILE, image_filename))
     
     # Open the output file in write mode
     with jsonlines.open(output_file, mode='w') as writer:
@@ -26,17 +32,19 @@ def generate_captions_and_save(img_directory: str, batch_size: int, output_file:
         for i in tqdm(range(0, len(img_paths), batch_size)):
             batch = img_paths[i: i + batch_size]
 
-            # Generate captions BLIP2
-            captions = BLIP_captioning(batch)
+            # Generate captions BLIP
+            captions = BLIP_captioning(batch, return_sequences=APPEND_QUERY_COUNT)
+            
+            assert len(captions) == APPEND_QUERY_COUNT * len(batch)
 
             # Organize results and write to jsonl file
-            for path, caption in zip(batch, captions):
+            for i, path in enumerate(batch):
                 result = {
-                    "file_name": Path(path).name,
-                    "caption": caption
+                    "doc_id": path.split('/')[-1].split('.')[0],
+                    "caption": ' '.join(captions[i*APPEND_QUERY_COUNT : (i+1)*APPEND_QUERY_COUNT])
                 }
                 writer.write(result)
 
 
 if __name__ == "__main__":
-    generate_captions_and_save(IMG_FILE_PATH, batch_size=64, output_file="/tmp2/Kai/caption_data/captions_BLIP_base.jsonl")
+    generate_captions_and_save(IMAGE2TEXT, batch_size=128, output_file="/tmp2/Kai/caption_data/captions_BLIP_base_16k.jsonl")

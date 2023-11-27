@@ -6,7 +6,7 @@ import torch
 from tqdm import tqdm
 import jsonlines
 from pathlib import Path
-from mPLUG_zero_shot_infer import mPLUG_captioning
+from mPLUG_infer import mPLUG_captioning
 
 # path for the images
 IMG_FILE_PATH = "/root/images"
