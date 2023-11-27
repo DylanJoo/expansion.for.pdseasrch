@@ -11,6 +11,7 @@ class ModelArgs:
     processor_name: Optional[str] = field(default=None)
     use_fast_tokenizer: bool = field(default=True)
     datacollator: str = field(default='product2query')
+    do_lower_case: bool = field(default=True)
 
 @dataclass
 class DataArgs:

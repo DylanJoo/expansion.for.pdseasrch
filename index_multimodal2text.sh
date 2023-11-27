@@ -1,4 +1,4 @@
-for ckpt in 17500;do
+for ckpt in 20000;do
     DIR_OUT=data/expanded_corpus/blip-vqa-base-product2query-$ckpt
     python -m pyserini.index.lucene \
         --collection JsonCollection \
