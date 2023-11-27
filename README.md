@@ -126,8 +126,9 @@ python3 tools/concat_predict_to_corpus.py \
 - [ ] Lexically-Accelerated Dense Retrieval [(Kulkarni et al., 2023)](https://dl.acm.org/doi/pdf/10.1145/3539618.3591715) 
 
 #### Image-based 
-- [ ] BLIP
-- [ ] GIT 
+- [ ] BLIP [(Li et al., 2022)](https://proceedings.mlr.press/v162/li22n/li22n.pdf) 
+- [ ] GIT [(Wang et al., 2022)](https://arxiv.org/pdf/2205.14100.pdf) 
+- [ ] mPLUG [(Li et al., 2022)](https://aclanthology.org/2022.emnlp-main.488.pdf)
 
 #### Multimodal
 - [x] MSMO: Multimodal Summarization with Multimodal Output [(Zhu et al., 2023)](https://aclanthology.org/D18-1448.pdf)
