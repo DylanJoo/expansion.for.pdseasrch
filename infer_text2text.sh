@@ -1,4 +1,4 @@
-for ckpt in 15000;do
+for ckpt in 10000 12500 15000 17500 20000;do
     MODEL=~/expansion.for.pdseasrch/models/t5-base-product2query/checkpoint-${ckpt}
     DIR_OUT=data/expanded_corpus/t5-base-product2query-${ckpt}
     mkdir -p $DIR_OUT
@@ -13,7 +13,7 @@ for ckpt in 15000;do
         --max_tgt_length 10 \
         --num_return_sequences 10  \
         --output_jsonl $DIR_OUT/corpus.jsonl \
-        --template "summarize: {0} ||| {1}" \
+        --template "summarize: title: {0} contents: {1}" \
         --device cuda
 done
 

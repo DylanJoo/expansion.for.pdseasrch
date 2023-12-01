@@ -21,5 +21,5 @@ python3 text2text/train.py \
     --optim adafactor \
     --report_to wandb \
     --overwrite_output_dir true \
-    --template "summarize: {0} ||| {1}" \
-    --run_name bars-title
+    --template "summarize: title: {0} contents: {1}" \
+    --run_name latest-one-t2t
