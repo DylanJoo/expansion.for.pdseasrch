@@ -27,6 +27,7 @@ class TrainArgs(Seq2SeqTrainingArguments):
     max_steps: int = field(default=-1)
     save_steps: int = field(default=5000)
     eval_steps: int = field(default=2500)
+    image_dropout: float = field(default=0.0)
     evaluation_strategy: Optional[str] = field(default='steps')
     template_src: Optional[str] = field(default=None)
     template_tgt: Optional[str] = field(default=None)

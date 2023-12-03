@@ -13,6 +13,7 @@ data/splade_corpus/
 data/trec-pds.train.m2t.product2query.jsonl
 data/trec-pds.train.t2t.product2query.jsonl
 data/trec-pds.train.i2t.product2query.jsonl
+data/trec-pds.pretrain.m2t.product2query.jsonl
 data/images
 
 # index files
@@ -31,3 +32,5 @@ runs/
 test.sh
 prep_t2t.sh
 prep_m2t.sh
+
+**/*swp

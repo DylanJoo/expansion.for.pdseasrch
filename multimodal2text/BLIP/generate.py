@@ -8,10 +8,14 @@ from transformers import GenerationConfig, AutoConfig
 from datasets import Dataset
 from tools import batch_iterator, load_images
 
-def inference(model, processor, batch, config, device, template_src, **kwargs):
-    images = [Image.open(img).convert('RGB').resize((64, 64))\
-            for img in batch['image']]
-    template = template_src
+def inference(model, processor, batch, config, device, template, **kwargs):
+    if kwargs.pop('text_only', False):
+        blank = Image.new('RGB', (384, 384), color=(255, 255, 255))
+        images = [blank] * len(batch['title'])
+    else:
+        images = [Image.open(img).convert('RGB').resize((384, 384))\
+                for img in batch['image']]
+
     if template:
         texts = [template.format(title) for title in batch['title']]
     else:
@@ -47,6 +51,7 @@ if __name__ == '__main__':
     parser.add_argument("--num_return_sequences", default=3, type=int)
     parser.add_argument("--template_src", default=None, type=str)
     parser.add_argument("--device", default='cuda', type=str)
+    parser.add_argument("--do_text_only", action='store_true', default=False)
     args = parser.parse_args()
 
     # load hf 
@@ -92,12 +97,51 @@ if __name__ == '__main__':
             else:
                 data_onlytext.append(data)
 
-    dataset_both = Dataset.from_list(data_both)
     dataset_onlytext = Dataset.from_list(data_onlytext)
-    print(dataset_both)
+    dataset_both = Dataset.from_list(data_both)
     print(dataset_onlytext)
+    print(dataset_both)
 
-    # inference: both
+    # inference: text only
+    data_iterator = batch_iterator(dataset_onlytext, args.batch_size, False)
+    for batch in tqdm(data_iterator, total=len(dataset_onlytext)//args.batch_size+1):
+        batch_ids = batch['doc_id']
+        batch_titles = batch['title']
+
+        if args.do_text_only:
+            # enumerate the generated outputs
+            for i in range(len(batch_ids)):
+                docid = batch_ids[i]
+                title = batch_titles[i]
+                generated_texts = inference(
+                        model, processor, batch,
+                        config=generation_config,
+                        device=args.device,
+                        max_src_length=args.max_src_length,
+                        template=args.template_src,
+                        text_only=True # only the text
+                )
+                if args.num_return_sequences > 1:
+                    start = i * args.num_return_sequences
+                    end = start+args.num_return_sequences
+                    generated_text = ". ".join(generated_texts[start: end])
+                else:
+                    generated_text = generated_texts[i]
+
+                fout.write(json.dumps({
+                    "id": str(docid), 
+                    "contents": title + " . " + generated_text,
+                })+'\n')
+        else:
+            for i in range(len(batch_ids)):
+                docid = batch_ids[i]
+                title = batch_titles[i]
+                fout.write(json.dumps({
+                    "id": str(docid), 
+                    "contents": title
+                })+'\n')
+
+    # inference: text + image
     data_iterator = batch_iterator(dataset_both, args.batch_size, False)
     for batch in tqdm(data_iterator, total=len(dataset_both)//args.batch_size+1):
 
@@ -110,7 +154,7 @@ if __name__ == '__main__':
                 config=generation_config,
                 device=args.device,
                 max_src_length=args.max_src_length,
-                template_src=args.template_src
+                template=args.template_src
         )
 
         # enumerate the generated outputs
@@ -129,12 +173,4 @@ if __name__ == '__main__':
                 "contents": title + " . " + generated_text,
             })+'\n')
 
-    # inference: text only
-    for data in dataset_onlytext: 
-        fout.write(json.dumps({
-            "id": str(data['doc_id']),
-            "contents": data['title'],
-        })+'\n')
-
-    fout.close()
     print("Done")

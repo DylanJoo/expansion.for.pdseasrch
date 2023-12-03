@@ -32,14 +32,16 @@ def main():
     print(dataset)
 
     # Data: collator
-    datacollator_classes = {"product2query": datacollator.Product2Query}
+    datacollator_classes = {
+            "product2query": datacollator.Product2Query,
+            "product2title": datacollator.Product2Title
+    }
     data_collator = datacollator_classes[model_args.datacollator](
             processor=processor,
             template_src=training_args.template_src,
             template_tgt=training_args.template_tgt,
             max_src_length=data_args.max_src_length,
-            max_tgt_length=data_args.max_tgt_length,
-            image_dropout=training_args.image_dropout
+            max_tgt_length=data_args.max_tgt_length
     )
 
     # Train: 
