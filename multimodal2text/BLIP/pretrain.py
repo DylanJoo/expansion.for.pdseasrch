@@ -8,6 +8,7 @@ from transformers import HfArgumentParser
 from transformers import Trainer
 from arguments import ModelArgs, DataArgs, TrainArgs
 from datasets import load_dataset
+from tools import random_mask
 import datacollator 
 
 def main():
@@ -18,25 +19,24 @@ def main():
     else:
         model_args, data_args, training_args = parser.parse_args_into_dataclasses()
 
-    if 'vqa' in model_args.model_name_or_path:
-        from models import BlipForQuestionAnswering
-        model = BlipForQuestionAnswering.from_pretrained(model_args.model_name_or_path)
-    if 'cap' in model_args.model_name_or_path:
-        from transformers import BlipForConditionalGeneration
-        model = BlipForConditionalGeneration.from_pretrained(model_args.model_name_or_path)
+    # from models import BlipForQuestionAnswering
+    from models_vis_enhanced import BlipForQuestionAnswering
+    model = BlipForQuestionAnswering.from_pretrained(model_args.model_name_or_path)
     processor = AutoProcessor.from_pretrained(model_args.processor_name)
     
     # Data: dataset
     dataset = load_dataset('json', data_files=data_args.train_file)['train']
     dataset = dataset.train_test_split(test_size=3000, seed=777)
+    # Data: augmentation: title word drop
+    dataset = dataset.map(
+            lambda x: {"title_drop": random_mask(x['title'], drop_p=data_args.title_worddrop)}
+    )  
+
     print(dataset)
+    print(dataset['train'][0])
 
     # Data: collator
-    datacollator_classes = {
-            "product2query": datacollator.Product2Query,
-            "product2title": datacollator.Product2Title
-    }
-    data_collator = datacollator_classes[model_args.datacollator](
+    data_collator = datacollator.Product2Title(
             processor=processor,
             template_src=training_args.template_src,
             template_tgt=training_args.template_tgt,

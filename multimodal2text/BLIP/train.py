@@ -18,12 +18,14 @@ def main():
     else:
         model_args, data_args, training_args = parser.parse_args_into_dataclasses()
 
-    if 'vqa' in model_args.model_name_or_path:
-        from models import BlipForQuestionAnswering
-        model = BlipForQuestionAnswering.from_pretrained(model_args.model_name_or_path)
-    if 'cap' in model_args.model_name_or_path:
-        from transformers import BlipForConditionalGeneration
-        model = BlipForConditionalGeneration.from_pretrained(model_args.model_name_or_path)
+    from models import BlipForQuestionAnswering
+    model = BlipForQuestionAnswering.from_pretrained(model_args.model_name_or_path)
+
+    if training_args.freeze_text_decoder:
+        for name, param in model.named_parameters():
+            if 'text_decoder' in name:
+                param.requires_grad = False
+
     processor = AutoProcessor.from_pretrained(model_args.processor_name)
     
     # Data: dataset
@@ -39,6 +41,7 @@ def main():
             template_tgt=training_args.template_tgt,
             max_src_length=data_args.max_src_length,
             max_tgt_length=data_args.max_tgt_length,
+            text_dropout=training_args.text_dropout,
             image_dropout=training_args.image_dropout
     )
 

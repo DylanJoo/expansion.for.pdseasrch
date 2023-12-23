@@ -19,6 +19,7 @@ class DataArgs:
     eval_file: Optional[str] = field(default=None)
     max_src_length: int = field(default=256)
     max_tgt_length: int = field(default=16)
+    title_worddrop: float = field(default=0.0)
 
 @dataclass
 class TrainArgs(Seq2SeqTrainingArguments):
@@ -26,9 +27,12 @@ class TrainArgs(Seq2SeqTrainingArguments):
     do_eval: bool = field(default=False)
     max_steps: int = field(default=-1)
     save_steps: int = field(default=5000)
-    eval_steps: int = field(default=2500)
+    eval_steps: int = field(default=None)
     image_dropout: float = field(default=0.0)
-    evaluation_strategy: Optional[str] = field(default='steps')
+    text_dropout: float = field(default=0.0)
+    evaluation_strategy: Optional[str] = field(default='no')
     template_src: Optional[str] = field(default=None)
     template_tgt: Optional[str] = field(default=None)
     predict_with_generate: bool = field(default=True)
+    # freeze
+    freeze_text_decoder: bool = field(default=False)

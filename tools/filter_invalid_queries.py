@@ -29,8 +29,7 @@ if __name__ == '__main__':
     fout = open(args.qrels_filtered, 'w')
     with open(args.qrels, 'r') as f:
         for line in tqdm(f):
-            qid, _, docid, relevance = line.strip().split('\t')
-
+            qid, _, docid, relevance = line.strip().split()
             query_tokens = query[qid].split(' ')
             if ( len(query_tokens) == 1) and (query_tokens[0].startswith("B")):
                 filtered_qrels[qid].append( (docid, relevance) )

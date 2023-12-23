@@ -22,28 +22,6 @@ def extract_metadata(item):
             metadata.append(v)
     return " ".join(metadata)
 
-def load_query(path='data/qid2query.tsv'):
-    data = {}
-    with open(path, 'r') as f:
-        for line in f:
-            try:
-                qid, qtext = line.strip().split('\t')
-            except:
-                qid = line.strip()
-                qtext = ""
-                print("Filtered query: {}\t{}".format(qid, qtext))
-
-            qtext_toks = qtext.split()
-            if ( len(qtext_toks) == 1) and (qtext_toks[0].startswith("B")):
-                print("Filtered query: {}\t{}".format(qid, qtext))
-            elif ( len(qtext_toks) == 1) and (qtext_toks[0] == ""):
-                print("Filtered query: {}\t{}".format(qid, qtext))
-            elif qtext == "":
-                print("Filtered query: {}\t{}".format(qid, qtext))
-            else:
-                data[str(qid.strip())] = qtext
-    return data
-
 def load_images(path):
     data = {}
     with open(path, 'r') as f:
@@ -82,8 +60,6 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     # load data
-    queries = load_query(args.query)
-    print('load query: done')
     corpus = load_corpus(args.collection)
     print('load corpus: done')
     images = load_images(args.img_collection)
@@ -92,10 +68,11 @@ if __name__ == '__main__':
     with open(args.output, 'w') as fout:
         for docid in tqdm(images, total=len(images)):
             try:
-                example = {'query': "NO relevant query for pretraining."}
+                example = {}
                 example['title'] = corpus[docid]['title']
+                example['description'] = corpus[docid]['description']
                 example['image'] = images[docid]
                 fout.write(json.dumps(example, ensure_ascii=False)+'\n')
             except:
-                print('missing product or query', docid)
+                print('missing product', docid)
 

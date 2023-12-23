@@ -9,7 +9,7 @@ from datasets import Dataset
 from tools import batch_iterator, load_images
 
 def inference(model, processor, batch, config, device, template, **kwargs):
-    if kwargs.pop('text_only', False):
+    if kwargs.get('text_only', False):
         blank = Image.new('RGB', (384, 384), color=(255, 255, 255))
         images = [blank] * len(batch['title'])
     else:
@@ -17,7 +17,8 @@ def inference(model, processor, batch, config, device, template, **kwargs):
                 for img in batch['image']]
 
     if template:
-        texts = [template.format(title) for title in batch['title']]
+        texts = [template.format(t, s) \
+                for t, s in zip(batch['title'], batch['description'])]
     else:
         texts = None
 
@@ -43,7 +44,8 @@ if __name__ == '__main__':
     parser.add_argument("--model_name", default='t5-base', type=str)
     parser.add_argument("--model_hf_name", default='t5-base', type=str)
     parser.add_argument("--num_beams", default=1, type=int)
-    parser.add_argument("--top_k", default=50, type=int)
+    parser.add_argument("--top_k", default=10, type=int)
+    parser.add_argument("--top_p", default=1.0, type=float)
     parser.add_argument("--do_sample", default=False, action='store_true')
     parser.add_argument("--batch_size", default=16, type=int)
     parser.add_argument("--max_src_length", default=256, type=int)
@@ -55,16 +57,10 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     # load hf 
-    if 'caption' in args.model_name:
-        from transformers import BlipForConditionalGeneration
-        model = BlipForConditionalGeneration.from_pretrained(args.model_name)
-        from transformers import AutoProcessor
-        processor = AutoProcessor.from_pretrained(args.model_hf_name, padding_size="left")
-    else:
-        from transformers import BlipForQuestionAnswering
-        model = BlipForQuestionAnswering.from_pretrained(args.model_name)
-        from transformers import AutoProcessor
-        processor = AutoProcessor.from_pretrained(args.model_hf_name)
+    from transformers import BlipForQuestionAnswering
+    model = BlipForQuestionAnswering.from_pretrained(args.model_name)
+    from transformers import AutoProcessor
+    processor = AutoProcessor.from_pretrained(args.model_hf_name)
 
     model = model.to(args.device)
     model = model.eval()
@@ -73,6 +69,7 @@ if __name__ == '__main__':
     generation_config = GenerationConfig(
             num_beams=args.num_beams, 
             top_k=args.top_k, 
+            top_p=args.top_p, 
             do_sample=args.do_sample, 
             max_new_tokens=args.max_tgt_length, 
             num_return_sequences=args.num_return_sequences,
@@ -88,8 +85,10 @@ if __name__ == '__main__':
     with open(args.collection, 'r') as f:
         for line in tqdm(f):
             item = json.loads(line.strip())
-            data = {'doc_id': item['doc_id'], 'title': item['title']}
-            image = images.pop(str(item['doc_id']), None)
+            data = {'doc_id': item['doc_id'], 
+                    'title': item['title'], 
+                    'description': item['description']}
+            image = images.get(str(item['doc_id']), None)
 
             if image:
                 data.update({'image': image})
@@ -110,17 +109,17 @@ if __name__ == '__main__':
 
         if args.do_text_only:
             # enumerate the generated outputs
+            generated_texts = inference(
+                    model, processor, batch,
+                    config=generation_config,
+                    device=args.device,
+                    max_src_length=args.max_src_length,
+                    template=args.template_src,
+                    text_only=True # only the text
+            )
             for i in range(len(batch_ids)):
                 docid = batch_ids[i]
                 title = batch_titles[i]
-                generated_texts = inference(
-                        model, processor, batch,
-                        config=generation_config,
-                        device=args.device,
-                        max_src_length=args.max_src_length,
-                        template=args.template_src,
-                        text_only=True # only the text
-                )
                 if args.num_return_sequences > 1:
                     start = i * args.num_return_sequences
                     end = start+args.num_return_sequences

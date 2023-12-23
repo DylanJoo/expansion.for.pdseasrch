@@ -1,5 +1,6 @@
 import os
 import re
+import random
 from tqdm import tqdm
 import json
 import collections
@@ -10,16 +11,13 @@ import requests
 def load_query(path='/tmp2/trec/pds/data/query/qid2query.tsv'):
     data = collections.defaultdict(str)
     with open(path, 'r') as f:
-        for line in f:
-            if path.endswith('tsv'):
-                qid, qtext = line.split('\t')
-                data[str(qid.strip())] = qtext.strip()
-            else:
-                raise ValueError("Invalid data extension.")
+        for i, line in enumerate(f):
+            qid, qtext = line.split('\t')
+            data[str(qid.strip())] = qtext.strip()
     return data
 
 def load_images(path):
-    data = {}
+    data = collections.defaultdict(str)
     # data_dir = os.path.join(path.rsplit('/', 1)[0], 'collection')
     with open(path, 'r') as f:
         for line in tqdm(f):
@@ -40,15 +38,14 @@ def load_title(path='/tmp2/trec/pds/data/collection/collection_sim_title.jsonl')
         data[str(doc_id)] = contents
     return data
 
-def load_collection(path='/tmp2/trec/pds/data/collection/collection_sim.jsonl', append=False, key='title'):
-# def load_collection(path='/tmp2/trec/pds/data/collection/collection_full.jsonl', append=False):
-    data = collections.defaultdict(str)
+def load_collection(path, append=False):
+    data = {}
     # data = collections.defaultdict(lambda: 'NA')
     fi = open(path, 'r')
     for line in tqdm(fi):
         item = json.loads(line.strip())
         # [bug] valule `docid` is inccoret
-        doc_id = item.pop('id')
+        doc_id = item.pop('doc_id')
         if append:
             title = item['title']
             asin = item.get('asin', "")
@@ -56,9 +53,10 @@ def load_collection(path='/tmp2/trec/pds/data/collection/collection_sim.jsonl', 
             description = item['description']
             data[str(doc_id)] = f"{title}{append}{description}"
         else:
-            if 'contents' in item:
-                key = 'contents'
-            data[str(doc_id)] = item[key]
+            data[str(doc_id)] = {
+                    'title': item['title'], 
+                    'description': item['description']
+            }
     return data
 
 def load_qrel(path='/tmp2/trec/pds/data/qrels/product-search-train.qrels', thres=1):
@@ -73,12 +71,12 @@ def load_qrel(path='/tmp2/trec/pds/data/qrels/product-search-train.qrels', thres
             negatives[qid] += [docid] # greater the better
     return positives, negatives
 
-def load_run(path='/tmp2/trec/pds/data/qrels/pyserini-full-train-2023.run', topk=10000):
+def load_run(path='/tmp2/trec/pds/data/qrels/pyserini-full-train-2023.run', top_k=10000):
     data = collections.defaultdict(list)
     with open(path, 'r') as f:
         for line in tqdm(f):
             qid, _, docid, rank, score, _ = line.strip().split()
-            if int(rank) <= topk:
+            if int(rank) <= top_k:
                 data[qid] += [(docid, float(rank))]
 
     sorted_data = collections.OrderedDict()
@@ -87,12 +85,12 @@ def load_run(path='/tmp2/trec/pds/data/qrels/pyserini-full-train-2023.run', topk
         sorted_data[qid] = [docid for docid, _ in sorted_docid_list]
     return sorted_data
 
-def load_qp_pair(path='/tmp2/trec/pds/data/qrels/pyserini-full-train-2023.run', topk=10000):
+def load_qp_pair(path='/tmp2/trec/pds/data/qrels/pyserini-full-train-2023.run', top_k=10000):
     data = {'qid': [], 'docid': []}
     with open(path, 'r') as f:
         for line in tqdm(f):
             qid, _, docid, rank, score, _ = line.strip().split()
-            if int(rank) <= topk:
+            if int(rank) <= top_k:
                 data['qid'].append(qid)
                 data['docid'].append(docid)
     return data
@@ -116,3 +114,10 @@ def batch_iterator(iterable, size=1, return_index=False):
             yield (ndx, min(ndx + size, l))
         else:
             yield iterable[ndx:min(ndx + size, l)]
+
+def random_mask(x, drop_p=0.5):
+    spec = "[MASK]"
+    w = x.split()
+    drop = random.choices([0,1], k=len(w), weights=[drop_p, 1-drop_p])
+    w = [ww if l==1 else spec for ww, l in zip(w, drop)]
+    return " ".join(w)
