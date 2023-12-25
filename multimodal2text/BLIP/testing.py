@@ -12,10 +12,11 @@ def inference(model, processor, batch, config, device, template, **kwargs):
     try:
         images = [Image.open(batch['image']).convert('RGB').resize((384, 384))]
     except:
-        images = [Image.new('RGB', (384, 384), color=(255, 255, 255))]
+        images = None
 
     if template:
-        texts = [template.format(batch['title'], batch['description'])]
+        # texts = [template.format(batch['title'], batch['description'])]
+        texts = [template.format("", "")]
     else:
         texts = None
 
@@ -73,8 +74,8 @@ if __name__ == '__main__':
     corpus = load_collection(args.collection, append=False)
 
     # enumerate the generated outputs
-    for docid in [414984, 104175, 640271, 1617168, 467983, 1227643, 910117, 1281957, 832006, 37679, 333358, 1052725, 160049]:
-    # for docid in [13]:
+    # for docid in [13, 414984, 104175, 640271, 1617168, 467983, 1227643, 910117, 1281957, 832006, 37679, 333358, 1052725, 160049]:
+    for docid in [1 , 2 , 4 , 6 , 10 , 11 , 12 , 13 , 14 , 19]:
         docid = str(docid)
         batch = {
                 "title": corpus[docid]['title'],
@@ -89,4 +90,7 @@ if __name__ == '__main__':
                 template=args.template_src,
                 text_only=False
         )
-        print(batch['title'], generated_texts)
+        print(batch['title'])
+        print(generated_texts)
+
+    print('----')

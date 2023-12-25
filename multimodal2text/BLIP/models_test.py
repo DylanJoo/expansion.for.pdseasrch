@@ -1,7 +1,8 @@
 import torch
 from dataclasses import dataclass
 from typing import Any, Optional, Tuple, Union
-
+import torch.nn as nn
+from torch.nn import CrossEntropyLoss
 from transformers import BlipForQuestionAnswering as BlipForQuestionAnswering_hf
 from transformers.utils import ModelOutput
 
@@ -83,10 +84,9 @@ class BlipForQuestionAnswering(BlipForQuestionAnswering_hf):
             encoder_attention_mask=attention_mask,
             labels=labels,
             return_dict=return_dict,
-            reduction="none",
+            reduction="mean",
         )
         lm_logits_0 = answer_output_0.logits
-        lm_loss_0 = answer_output_0.loss.view(batch_size, -1).mean(-1)
 
         # decoding from text-image representation
         answer_output_1 = self.text_decoder(
@@ -96,13 +96,19 @@ class BlipForQuestionAnswering(BlipForQuestionAnswering_hf):
             encoder_attention_mask=attention_mask,
             labels=labels,
             return_dict=return_dict,
-            reduction="none",
+            reduction="mean",
         )
         lm_logits_1 = answer_output_1.logits
-        lm_loss_1 = answer_output_1.loss.view(batch_size, -1).mean(-1)
+
+        lm_logits = lm_logits_1 - lm_logits_0
 
         if labels is not None:
-            decoder_loss = answer_output.loss.mean() if return_dict else answer_output[0].mean()
+            # we are doing next-token prediction; shift prediction scores and input ids by one
+            shifted_prediction_scores = lm_logits[:, :-1, :].contiguous()
+            labels = labels[:, 1:].contiguous().to(shifted_prediction_scores.device)
+            loss_fct = CrossEntropyLoss(reduction='mean', label_smoothing=0.1)
+            decoder_loss = loss_fct(shifted_prediction_scores.view(-1, self.text_decoder.config.vocab_size), labels.view(-1))
+            decoder_loss += (answer_output_0.loss.mean() + answer_output_1.loss.mean())
         else:
             decoder_loss = None
 
@@ -132,13 +138,9 @@ class BlipForQuestionAnswering(BlipForQuestionAnswering_hf):
         if isinstance(input_ids, list):
             input_ids = torch.LongTensor(input_ids)
 
-        if pixel_values:
-            vision_outputs = self.vision_model(pixel_values=pixel_values)
-            image_embeds = vision_outputs[0]
-            image_attention_mask = torch.ones(image_embeds.size()[:-1], dtype=torch.long).to(image_embeds.device)
-        else:
-            image_embeds = None
-            image_attention_mask = None
+        vision_outputs = self.vision_model(pixel_values=pixel_values)
+        image_embeds = vision_outputs[0]
+        image_attention_mask = torch.ones(image_embeds.size()[:-1], dtype=torch.long).to(image_embeds.device)
 
         question_outputs = self.text_encoder(
             input_ids=input_ids,

@@ -36,3 +36,4 @@ class TrainArgs(Seq2SeqTrainingArguments):
     predict_with_generate: bool = field(default=True)
     # freeze
     freeze_text_decoder: bool = field(default=False)
+    freeze_vision_encoder: bool = field(default=False)

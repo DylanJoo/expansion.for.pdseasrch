@@ -26,6 +26,11 @@ def main():
             if 'text_decoder' in name:
                 param.requires_grad = False
 
+    if training_args.freeze_vision_encoder:
+        for name, param in model.named_parameters():
+            if 'vision_encoder' in name:
+                param.requires_grad = False
+
     processor = AutoProcessor.from_pretrained(model_args.processor_name)
     
     # Data: dataset
@@ -34,15 +39,14 @@ def main():
     print(dataset)
 
     # Data: collator
-    data_collator = datacollator.Product2Query[model_args.datacollator](
+    data_collator = datacollator.Query2Title(
             processor=processor,
             template_src=training_args.template_src,
             template_tgt=training_args.template_tgt,
             max_src_length=data_args.max_src_length,
             max_tgt_length=data_args.max_tgt_length,
-            text_dropout=training_args.text_dropout,
-            image_dropout=training_args.image_dropout
     )
+    # true: 2995; false: 6270
 
     # Train: 
     ## eval metrics
@@ -62,7 +66,7 @@ def main():
         In VQA, the model return is vision hidden embeddings
         """
         output, labels = eval_preds
-        output = output[0]
+        # output = output[0]
         preds = np.argmax(output, axis=-1)
         # Replace -100s used for padding as we can't decode them
         preds = np.where(preds != -100, preds, processor.tokenizer.pad_token_id)

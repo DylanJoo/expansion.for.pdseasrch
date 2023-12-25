@@ -54,6 +54,7 @@ if __name__ == '__main__':
     parser.add_argument("--template_src", default=None, type=str)
     parser.add_argument("--device", default='cuda', type=str)
     parser.add_argument("--do_text_only", action='store_true', default=False)
+    parser.add_argument("--replace", action='store_true', default=False)
     args = parser.parse_args()
 
     # load hf 
@@ -127,10 +128,16 @@ if __name__ == '__main__':
                 else:
                     generated_text = generated_texts[i]
 
-                fout.write(json.dumps({
-                    "id": str(docid), 
-                    "contents": title + " . " + generated_text,
-                })+'\n')
+                if args.replace:
+                    fout.write(json.dumps({
+                        "id": str(docid), 
+                        "contents": generated_text,
+                    })+'\n')
+                else:
+                    fout.write(json.dumps({
+                        "id": str(docid), 
+                        "contents": title + " . " + generated_text,
+                    })+'\n')
         else:
             for i in range(len(batch_ids)):
                 docid = batch_ids[i]
@@ -167,9 +174,15 @@ if __name__ == '__main__':
             else:
                 generated_text = generated_texts[i]
 
-            fout.write(json.dumps({
-                "id": str(docid), 
-                "contents": title + " . " + generated_text,
-            })+'\n')
+            if args.replace:
+                fout.write(json.dumps({
+                    "id": str(docid), 
+                    "contents": generated_text,
+                })+'\n')
+            else:
+                fout.write(json.dumps({
+                    "id": str(docid), 
+                    "contents": title + " . " + generated_text,
+                })+'\n')
 
     print("Done")

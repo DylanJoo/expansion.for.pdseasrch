@@ -18,13 +18,8 @@ def main():
     else:
         model_args, data_args, training_args = parser.parse_args_into_dataclasses()
 
-    from models import BlipForQuestionAnswering
+    from models_mlsr import BlipForQuestionAnswering
     model = BlipForQuestionAnswering.from_pretrained(model_args.model_name_or_path)
-
-    if training_args.freeze_text_decoder:
-        for name, param in model.named_parameters():
-            if 'text_decoder' in name:
-                param.requires_grad = False
 
     processor = AutoProcessor.from_pretrained(model_args.processor_name)
     
@@ -34,8 +29,7 @@ def main():
     print(dataset)
 
     # Data: collator
-    datacollator_classes = {"product2query": datacollator.Product2Query}
-    data_collator = datacollator_classes[model_args.datacollator](
+    data_collator = datacollator.Product2Query(
             processor=processor,
             template_src=training_args.template_src,
             template_tgt=training_args.template_tgt,
@@ -44,7 +38,6 @@ def main():
             text_dropout=training_args.text_dropout,
             image_dropout=training_args.image_dropout
     )
-    # true: 2995; false: 6270
 
     # Train: 
     ## eval metrics

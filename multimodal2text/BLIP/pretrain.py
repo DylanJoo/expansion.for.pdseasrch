@@ -20,7 +20,7 @@ def main():
         model_args, data_args, training_args = parser.parse_args_into_dataclasses()
 
     # from models import BlipForQuestionAnswering
-    from models_vis_enhanced import BlipForQuestionAnswering
+    from models_test import BlipForQuestionAnswering
     model = BlipForQuestionAnswering.from_pretrained(model_args.model_name_or_path)
     processor = AutoProcessor.from_pretrained(model_args.processor_name)
     

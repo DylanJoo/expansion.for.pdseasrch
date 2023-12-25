@@ -83,7 +83,8 @@ class Product2Title:
             images = [img if lbl!=0 else blank for img, lbl in zip(images, drop_labels)]
 
         if self.text_dropout > 0:
-            texts = [txt if lbl!=-1 else " " for txt, lbl in zip(texts, drop_labels)] 
+            blank = self.template_src.format("", "")
+            texts = [txt if lbl!=-1 else blank for txt, lbl in zip(texts, drop_labels)] 
         labels = [self.template_tgt.format(b['title']) for b in features]
 
         inputs = self.processor(
@@ -169,5 +170,40 @@ class Product2Query_and_ProductRank:
         inputs['decoder_attention_mask'] = targets.attention_mask
 
         # combine the product ranking
+
+        return inputs
+
+@dataclass
+class Query2Title:
+    processor: Union[ProcessorMixin] = None
+    template_src: str = "{0}"
+    template_tgt: str = "{0}"
+    max_src_length: int = 16
+    max_tgt_length: int = 16
+
+    def __call__(self, features: List[Dict[str, Any]]) -> Dict[str, Any]:
+
+        texts = ["Query: {0}".format(b['query']) for b in features]
+        labels = [self.template_tgt.format(b['title']) for b in features]
+
+        inputs = self.processor(
+                text=texts,
+                max_length=self.max_src_length,
+                return_tensors='pt',
+                return_attention_mask=True,
+                truncation=True,
+                padding=True
+        )
+
+        targets = self.processor(
+                text=labels, 
+                max_length=self.max_tgt_length,
+                return_tensors='pt',
+                return_attention_mask=True,
+                truncation=True,
+                padding=True
+        )
+        inputs['labels'] = targets.input_ids
+        inputs['decoder_attention_mask'] = targets.attention_mask
 
         return inputs
