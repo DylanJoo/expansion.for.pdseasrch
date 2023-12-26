@@ -70,7 +70,7 @@ class Product2Title:
     def __call__(self, features: List[Dict[str, Any]]) -> Dict[str, Any]:
 
         images = [Image.open(b['image']).convert('RGB').resize((384, 384)) for b in features]
-        texts = [self.template_src.format(b['title_drop'], b['description']) \
+        texts = [self.template_src.format(b['title_masked'], b['description']) \
                 for b in features]
 
         # 0: text (drop images)

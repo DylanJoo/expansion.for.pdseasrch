@@ -19,7 +19,7 @@ class DataArgs:
     eval_file: Optional[str] = field(default=None)
     max_src_length: int = field(default=256)
     max_tgt_length: int = field(default=16)
-    title_worddrop: float = field(default=0.0)
+    title_mask_ratio: float = field(default=0.0)
 
 @dataclass
 class TrainArgs(Seq2SeqTrainingArguments):

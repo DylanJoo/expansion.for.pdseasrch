@@ -115,9 +115,9 @@ def batch_iterator(iterable, size=1, return_index=False):
         else:
             yield iterable[ndx:min(ndx + size, l)]
 
-def random_mask(x, drop_p=0.5):
+def random_mask(x, mask_p=0.5):
     spec = "[MASK]"
     w = x.split()
-    drop = random.choices([0,1], k=len(w), weights=[drop_p, 1-drop_p])
+    drop = random.choices([0,1], k=len(w), weights=[mask_p, 1-mask_p])
     w = [ww if l==1 else spec for ww, l in zip(w, drop)]
     return " ".join(w)

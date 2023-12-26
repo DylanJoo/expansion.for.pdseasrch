@@ -25,5 +25,5 @@ python3 multimodal2text/BLIP/train_mlsr.py \
     --report_to wandb \
     --overwrite_output_dir true \
     --template_src "title: {0} context: {1}"\
-    --template_tgt "{0}" \
+    --template_tgt "query: {0}" \
     --run_name blip-base-mlsr

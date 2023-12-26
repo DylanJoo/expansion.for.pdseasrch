@@ -1,0 +1,160 @@
+import torch
+from dataclasses import dataclass
+from typing import Any, Optional, Tuple, Union, List
+import torch.nn as nn
+from transformers.utils import ModelOutput
+from transformers.models.blip.modeling_blip import BlipTextLMHeadModel, BlipTextModel, BlipVisionModel
+from transformers import BlipConfig, BlipPreTrainedModel, AutoProcessor
+from PIL import Image
+
+@dataclass
+class BlipBiEncoder(ModelOutput):
+    logits: Optional[torch.FloatTensor] = None
+    embeds: Optional[torch.FloatTensor] = None
+
+class BlipForQueryEncoder(BlipPreTrainedModel):
+
+    @staticmethod
+    def lsr_max(logits):
+        relu = nn.ReLU(inplace=False)
+        values = torch.log(1 + relu(logits))
+        return values    
+
+    def __init__(self, config: BlipConfig, processor_name=None, pooling='max'):
+        super().__init__(config)
+
+        self.processor = AutoProcessor.from_pretrained(processor_name or config.name_or_path)
+        self.text_encoder = BlipTextModel(config.text_config, add_pooling_layer=False)
+        self.text_decoder = BlipTextLMHeadModel(config.text_config)
+        self.decoder_pad_token_id = config.text_config.pad_token_id
+        self.decoder_start_token_id = config.text_config.bos_token_id
+        self.pooling = pooling
+
+        # Initialize weights and apply final processing
+        self.post_init()
+
+    def encode(self, queries: List[str], **processor_kwargs):
+        texts = [f"query: {q}" for q in queries]
+        inputs = self.processor(
+                text=texts, 
+                truncation=True,
+                padding=True,
+                return_tensors='pt', 
+                **processor_kwargs
+        ).to(self.device)
+        values = self.lsr_max(self.forward(**inputs).logits)
+        return values
+
+    def forward(
+        self,
+        input_ids: Optional[torch.LongTensor] = None,
+        attention_mask: Optional[torch.LongTensor] = None,
+        **kwargs
+    ):
+        # text representation (query)
+        query_embeds = self.text_encoder(
+            input_ids=input_ids,
+            attention_mask=attention_mask,
+            encoder_hidden_states=None,
+            encoder_attention_mask=None,
+        )[0]
+
+        bos_ids = torch.full(
+            (input_ids.size(0), 1), fill_value=self.decoder_start_token_id, device=input_ids.device
+        )
+
+        # decoding from text representation
+        query_logits = self.text_decoder(
+            input_ids=bos_ids,
+            attention_mask=None,
+            encoder_hidden_states=query_embeds,
+            encoder_attention_mask=attention_mask,
+            reduction="none",
+        ).logits
+
+        return BlipBiEncoder(
+                logits=query_logits[:, 0, :], # aggregated at first token
+                embeds=query_embeds
+        )
+
+class BlipForProductEncoder(BlipPreTrainedModel):
+
+    @staticmethod
+    def lsr_max(logits):
+        relu = nn.ReLU(inplace=False)
+        values = torch.log(1 + relu(logits))
+        return values    
+
+    def __init__(self, config: BlipConfig, processor_name=None, pooling='max'):
+        super().__init__(config)
+
+        self.processor = AutoProcessor.from_pretrained(processor_name or config.name_or_path)
+        self.vision_model = BlipVisionModel(config.vision_config)
+        self.text_encoder = BlipTextModel(config.text_config, add_pooling_layer=False)
+        self.text_decoder = BlipTextLMHeadModel(config.text_config)
+        self.decoder_pad_token_id = config.text_config.pad_token_id
+        self.decoder_start_token_id = config.text_config.bos_token_id
+        self.pooling = pooling
+
+        # Initialize weights and apply final processing
+        self.post_init()
+
+    def encode(self, titles: List[str], descriptions: List[str], images_path: List[str] = None, **processor_kwargs):
+        texts = [f"title: {t} context: {d}" for t, d in zip(titles, descriptions)]
+        images = []
+        for img in images_path:
+            try:
+                images.append(Image.open(img.convert('RGB').resize((384, 384))))
+            except:
+                blank = Image.new('RGB', (384, 384), color=(255, 255, 255))
+                images.append(blank)
+        inputs = self.processor(
+                images=images, text=texts,
+                truncation=True,
+                padding=True,
+                return_tensors='pt',
+                **processor_kwargs
+        ).to(self.device)
+        values = self.lsr_max(self.forward(**inputs).logits)
+        return values
+
+    def forward(
+        self,
+        pixel_values: Optional[torch.FloatTensor] = None,
+        input_ids: Optional[torch.LongTensor] = None,
+        attention_mask: Optional[torch.LongTensor] = None,
+        **kwargs
+    ):
+        # image representation
+        vision_outputs = self.vision_model(
+            pixel_values=pixel_values,
+        )
+        image_embeds = vision_outputs[0]
+        image_attention_mask = torch.ones(image_embeds.size()[:-1], dtype=torch.long)
+
+        # image-text representation
+        product_embeds_1 = self.text_encoder(
+            input_ids=input_ids,
+            attention_mask=attention_mask,
+            encoder_hidden_states=image_embeds,
+            encoder_attention_mask=image_attention_mask,
+        )[0]
+
+        bos_ids = torch.full(
+            (input_ids.size(0), 1), fill_value=self.decoder_start_token_id, device=input_ids.device
+        )
+
+        # decoding from image-text representation
+        product_logits_1 = self.text_decoder(
+            input_ids=bos_ids,
+            attention_mask=None,
+            encoder_hidden_states=product_embeds_1,
+            encoder_attention_mask=attention_mask,
+            reduction="none",
+        ).logits
+
+        return BlipBiEncoder(
+                logits=product_logits_1[:, 0, :], # aggregated at first token
+                embeds=product_embeds_1
+        )
+

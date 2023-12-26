@@ -111,19 +111,26 @@ class BlipForQuestionAnswering(BlipForQuestionAnswering_hf):
         ).logits
 
         # decoding from image-text representation
-        product_logits_1 = self.text_decoder(
-            input_ids=bos_ids,
-            attention_mask=None,
+        if labels is not None and decoder_input_ids is None:
+            # labels are already shifted right, see: https://github.com/huggingface/transformers/pull/23153
+            decoder_input_ids = labels
+
+        product_outputs_1 = self.text_decoder(
+            input_ids=decoder_input_ids,
+            attention_mask=decoder_attention_mask,
             encoder_hidden_states=product_embeds_1,
             encoder_attention_mask=attention_mask,
+            labels=labels,
             return_dict=return_dict,
-            reduction="none",
-        ).logits
+            reduction="mean",
+        )
+        product_logits_1 = product_outputs_1.logits
+        loss_mtlm = product_outputs_1.loss
 
         # reshape # or make the extraction just like `encode.py -- forward`
-        query_result = self.splade_max(query_logits[:, -1, :]) ##(bsz, Vocab)
-        product_result_0 = self.splade_max(product_logits_0[:, -1, :]) ##(bsz, Vocab)
-        product_result_1 = self.splade_max(product_logits_1[:, -1, :]) ##(bsz, Vocab)
+        query_result = self.splade_max(query_logits[:, 0, :]) ##(bsz, Vocab)
+        product_result_0 = self.splade_max(product_logits_0[:, 0, :]) ##(bsz, Vocab)
+        product_result_1 = self.splade_max(product_logits_1[:, 0, :]) ##(bsz, Vocab)
 
         # scoring
         scores_0 = torch.mm(query_result, torch.permute(product_result_0,[1,0])) # shape (bsz, bsz)
@@ -137,6 +144,6 @@ class BlipForQuestionAnswering(BlipForQuestionAnswering_hf):
         loss_pair = CELoss(scores_pair, torch.ones(scores_pair.size(0), dtype=torch.long, device=scores_pair.device)) 
 
         return BlipTextVisionModelOutput(
-            loss=loss_0+loss_1+loss_pair,
+            loss=loss_0+loss_1+loss_pair+loss_mtlm,
             losses=(loss_0, loss_1, loss_pair)
         )
