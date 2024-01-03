@@ -8,6 +8,14 @@ import warnings
 from PIL import Image
 import requests
 
+def init_tokenizer(processor):
+    processor.tokenizer.add_special_tokens({'bos_token':'[DEC]'}) # 30522
+    processor.tokenizer.add_special_tokens({'additional_special_tokens': ['[ENC]']}) # 30523
+    processor.tokenizer.enc_token_id = processor.tokenizer.additional_special_tokens_ids[0]
+    print("processor.tokenizer.bos_token_id", processor.tokenizer.bos_token_id)
+    print("processor.tokenizer.enc_token_id", processor.tokenizer.enc_token_id)
+    return processor
+
 def load_query(path='/tmp2/trec/pds/data/query/qid2query.tsv'):
     data = collections.defaultdict(str)
     with open(path, 'r') as f:

@@ -34,6 +34,8 @@ class TrainArgs(Seq2SeqTrainingArguments):
     template_src: Optional[str] = field(default=None)
     template_tgt: Optional[str] = field(default=None)
     predict_with_generate: bool = field(default=True)
+    # include generation
+    text_generation: bool = field(default=False)
     # freeze
     freeze_text_decoder: bool = field(default=False)
     freeze_vision_encoder: bool = field(default=False)

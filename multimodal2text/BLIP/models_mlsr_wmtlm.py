@@ -150,24 +150,30 @@ class BlipForQuestionAnswering(BlipForQuestionAnswering_hf):
 
         ## [DEC] as decoding start token
         # query generation from text representation
-        product_logits_0_kd = self.text_decoder(
+        product_outputs_0_kd = self.text_decoder(
             input_ids=decoder_input_ids,
             attention_mask=decoder_attention_mask,
             encoder_hidden_states=product_embeds_0,
             encoder_attention_mask=attention_mask,
+            labels=labels,
             return_dict=return_dict,
             reduction="mean",
-        ).logits
+        )
 
         # query generation from text-iamge representation
-        product_logits_1_kd = self.text_decoder(
+        product_outputs_1_kd = self.text_decoder(
             input_ids=decoder_input_ids,
             attention_mask=decoder_attention_mask,
             encoder_hidden_states=product_embeds_1,
             encoder_attention_mask=attention_mask,
+            labels=labels,
             return_dict=return_dict,
             reduction="mean",
-        ).logits
+        )
+
+        loss_mtlm = product_outputs_0_kd.loss + product_outputs_1_kd.loss
+        product_logits_0_kd = product_outputs_0_kd.logits
+        product_logits_1_kd = product_outputs_1_kd.logits
 
         # reshape 
         query_result = self.splade_max(query_logits[:, 0, :]) ##(bsz, Vocab)
@@ -176,7 +182,7 @@ class BlipForQuestionAnswering(BlipForQuestionAnswering_hf):
         product_result_0_kd = self.splade_max(product_logits_0_kd[:, :-1, :], decoder_attention_mask[:, :-1]) ##(bsz, Vocab)
         product_result_1_kd = self.splade_max(product_logits_1_kd[:, :-1, :], decoder_attention_mask[:, :-1]) ##(bsz, Vocab)
 
-        # loss of splade 
+        # loss of splade
         CELoss = nn.CrossEntropyLoss()
         scores_0 = torch.mm(query_result, torch.permute(product_result_0,[1,0])) # shape (bsz, bsz)
         scores_1 = torch.mm(query_result, torch.permute(product_result_1,[1,0])) # shape (bsz, bsz)
@@ -196,11 +202,13 @@ class BlipForQuestionAnswering(BlipForQuestionAnswering_hf):
         loss_reg_d = (L1Loss(product_result_1) + L1Loss(product_result_0)) * self.lambda_d
 
         return BlipTextVisionModelOutput(
-            loss=(loss_0+loss_1+loss_pair) + (loss_1_kd+loss_0_kd) + (loss_reg_q+loss_reg_d),
+            loss=loss_0+loss_1+loss_pair+loss_mtlm+loss_1_kd+loss_0_kd+loss_reg_q+loss_reg_d,
             losses={
                 'splade_loss_0': loss_0, 
                 'splade_loss_1': loss_1, 
                 'splade_loss_pair': loss_pair,
+                'generation_0': product_outputs_0_kd.loss, 
+                'generation_1': product_outputs_1_kd.loss,
                 'self_kd_loss_0': loss_0_kd,
                 'self_kd_loss_1': loss_1_kd,
                 'reg_loss_q': loss_reg_q,

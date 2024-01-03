@@ -63,6 +63,12 @@ if __name__ == '__main__':
     model.eval()
     reverse_voc = {v: k for k, v in model.processor.tokenizer.vocab.items()}
 
+    # add additional 2 tokens
+    offset = model.text_decoder.config.vocab_size - len(reverse_voc)
+    for i in range(offset):
+        print(f"add {i} offset token: ")
+        reverse_voc.update({len(reverse_voc): f"[unused_{i}]"})
+
     # load data: image
     images = load_images(args.img_collection)
 
@@ -79,6 +85,7 @@ if __name__ == '__main__':
                 data.update({'image_path': image})
             data_list.append(data)
 
+            # remove this after pretesting
             if len(data_list) >= 10:
                 break
 
@@ -107,9 +114,15 @@ if __name__ == '__main__':
 
     # collection and re-dump the collections
     for i, example in enumerate(data_list):
-        example.pop('image_path', None)
-        example.update({"vector": vectors[i]})
-        fout.write(json.dumps(example, ensure_ascii=False)+'\n')
+        doc_id = example.pop('doc_id')
+        title = example.pop('title', "")
+        description = example.pop('description', "")
+
+        fout.write(json.dumps({
+            "id": doc_id, 
+            "contents": title + " " + description,
+            "vector": vectors[i]
+        }, ensure_ascii=False)+'\n')
 
     fout.close()
 

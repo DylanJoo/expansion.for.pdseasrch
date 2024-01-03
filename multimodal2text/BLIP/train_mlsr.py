@@ -5,9 +5,11 @@ import numpy as np
 import nltk
 from transformers import AutoProcessor
 from transformers import HfArgumentParser
-from transformers import Trainer
+# from transformers import Trainer
+from trainer import MyTrainer
 from arguments import ModelArgs, DataArgs, TrainArgs
 from datasets import load_dataset
+from tools import init_tokenizer
 import datacollator 
 
 def main():
@@ -18,10 +20,14 @@ def main():
     else:
         model_args, data_args, training_args = parser.parse_args_into_dataclasses()
 
-    from models_mlsr import BlipForQuestionAnswering
-    model = BlipForQuestionAnswering.from_pretrained(model_args.model_name_or_path)
-
+    if training_args.text_generation:
+        from models_mlsr_wmtlm import BlipForQuestionAnswering
+        model = BlipForQuestionAnswering.from_pretrained(model_args.model_name_or_path)
+    else:
+        from models_mlsr import BlipForQuestionAnswering
+        model = BlipForQuestionAnswering.from_pretrained(model_args.model_name_or_path)
     processor = AutoProcessor.from_pretrained(model_args.processor_name)
+    processor = init_tokenizer(processor)
     
     # Data: dataset
     dataset = load_dataset('json', data_files=data_args.train_file)['train']
@@ -74,7 +80,7 @@ def main():
         result["gen_len"] = np.mean(prediction_lens)
         return result
 
-    trainer = Trainer(
+    trainer = MyTrainer(
             model=model, 
             args=training_args,
             train_dataset=dataset['train'],

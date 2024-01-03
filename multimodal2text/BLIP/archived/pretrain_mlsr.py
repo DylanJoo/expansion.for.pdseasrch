@@ -19,20 +19,19 @@ def main():
     else:
         model_args, data_args, training_args = parser.parse_args_into_dataclasses()
 
-    from models_mlsr_prt_wmtlm import BlipForQuestionAnswering
+    # from models import BlipForQuestionAnswering
+    from models_mlsr_prt import BlipForQuestionAnswering
     model = BlipForQuestionAnswering.from_pretrained(model_args.model_name_or_path)
     processor = AutoProcessor.from_pretrained(model_args.processor_name)
-    
+
     # Data: dataset
     dataset = load_dataset('json', data_files=data_args.train_file)['train']
     dataset = dataset.train_test_split(test_size=3000, seed=777)
-    # Data: augmentation: title word drop
     dataset = dataset.map(
             lambda x: {"title_masked": random_mask(x['title'], mask_p=data_args.title_mask_ratio)}
     )  
 
     print(dataset)
-    print(dataset['train'][0])
 
     # Data: collator
     data_collator = datacollator.Product2Title(
