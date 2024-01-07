@@ -1,10 +1,11 @@
 export CUDA_VISIBLE_DEVICES=1
 BLIP_129M=DylanJHJ/blip-base-129M
+VQA=Salesforce/blip-vqa-base
 
 python3 multimodal2text/BLIP/train_mlsr.py \
-    --model_name_or_path $BLIP_129M \
-    --config_name $BLIP_129M \
-    --processor_name $BLIP_129M \
+    --model_name_or_path $VQA \
+    --config_name $VQA \
+    --processor_name $VQA \
     --train_file data/trec-pds.train.m2t.product2query.jsonl \
     --max_src_length 128 \
     --max_tgt_length 16 \
@@ -22,6 +23,8 @@ python3 multimodal2text/BLIP/train_mlsr.py \
     --remove_unused_columns false \
     --report_to wandb \
     --overwrite_output_dir true \
-    --template_src "title: {0} context: {1}"\
+    --text_generation true \
+    --template_src "{0} [SEP] {1}"\
     --template_tgt "{0}" \
-    --run_name blip-base-mlsr
+    --run_name blip-base-mlsr-wgen
+    # --template_src "what is this product? {0} [SEP] {1}"\

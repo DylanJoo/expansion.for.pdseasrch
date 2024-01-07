@@ -15,6 +15,7 @@ data/trec-pds.train.m2t.product2query.jsonl
 data/trec-pds.train.t2t.product2query.jsonl
 data/trec-pds.train.i2t.product2query.jsonl
 data/trec-pds.pretrain.m2t.product2query.jsonl
+data/trec-pds.train.mrerank.hn-v1.jsonl
 data/images
 
 # index files

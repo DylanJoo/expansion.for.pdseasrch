@@ -60,6 +60,8 @@ def search(args):
             ):
             qids_batch = qids[start: end]
             qtexts_batch = qtexts[start: end]
+            for qtexts in qtexts_batch:
+                print(query_encoder.encode(qtexts))
             hits = searcher.batch_search(
                     queries=qtexts_batch, 
                     qids=qids_batch, 

@@ -12,6 +12,7 @@ class ModelArgs:
     use_fast_tokenizer: bool = field(default=True)
     datacollator: str = field(default='product2query')
     do_lower_case: bool = field(default=True)
+    pooling: Optional[str] = field(default='max')
 
 @dataclass
 class DataArgs:

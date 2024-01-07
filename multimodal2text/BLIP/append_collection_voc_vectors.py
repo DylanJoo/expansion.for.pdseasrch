@@ -23,7 +23,7 @@ def generate_vocab_vector(batch, model, minimum=0, device='cpu', max_length=256,
         # (sparse) doc rep in voc space, shape (30522,)
 
     # get the number of non-zero dimensions in the rep:
-    cols = torch.nonzero(doc_reps)
+    cols = torch.nonzero(doc_reps).numpy()
 
     # now let's inspect the bow representation:
     weights = defaultdict(list)
@@ -51,6 +51,7 @@ if __name__ == '__main__':
     parser.add_argument("--quantization_factor", type=int, default=1000)
     parser.add_argument("--device", type=str, default=None)
     parser.add_argument("--minimum", type=float, default=0)
+    parser.add_argument("--debug", action='store_true', default=False)
     args = parser.parse_args()
 
     # load model and processor
@@ -86,7 +87,7 @@ if __name__ == '__main__':
             data_list.append(data)
 
             # remove this after pretesting
-            if len(data_list) >= 10:
+            if len(data_list) >= 10 and args.debug:
                 break
 
     dataset = Dataset.from_list(data_list)

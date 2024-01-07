@@ -29,6 +29,13 @@ def main():
     processor = AutoProcessor.from_pretrained(model_args.processor_name)
     processor = init_tokenizer(processor)
     
+    # Model: freezing
+    if training_args.freeze_vision_encoder:
+        for name, param in model.named_parameters():
+            if 'vision_model' in name:
+                param.requires_grad = False
+            print('param {} wont be optimized.'.format(name))
+
     # Data: dataset
     dataset = load_dataset('json', data_files=data_args.train_file)['train']
     dataset = dataset.train_test_split(test_size=3000, seed=777)
@@ -87,6 +94,7 @@ def main():
             eval_dataset=dataset['test'],
             data_collator=data_collator,
             compute_metrics=compute_metrics if training_args.predict_with_generate else None,
+            processor=processor
     )
     
     results = trainer.train()

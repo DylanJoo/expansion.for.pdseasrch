@@ -37,22 +37,24 @@ class Product2Query:
         if self.text_dropout > 0:
             blank = self.template_src.format("", "")
             texts = [txt if lbl!=-1 else blank for txt, lbl in zip(texts, drop_labels)] 
-        labels = [self.template_tgt.format(b['query']) for b in features]
 
         inputs = self.processor(
                 images=images, 
-                text=texts,
+                text=[f"[ENC] {t} [SEP]" for t in texts],
                 max_length=self.max_src_length,
                 return_tensors='pt',
+                add_special_tokens=False, # we dont want [SEP]
                 return_attention_mask=True,
                 truncation=True,
                 padding=True
         )
 
-        targets = self.processor(
-                text=labels, 
+        labels = [self.template_tgt.format(b['query']) for b in features]
+        targets = self.processor.tokenizer(
+                text=[f"[DEC] {l} [SEP]" for l in labels], 
                 max_length=self.max_tgt_length,
                 return_tensors='pt',
+                add_special_tokens=False, # we dont want [SEP]
                 return_attention_mask=True,
                 truncation=True,
                 padding=True
@@ -60,10 +62,10 @@ class Product2Query:
         inputs['labels'] = targets.input_ids
         inputs['decoder_attention_mask'] = targets.attention_mask
 
-        # BLIP special token '[ENC]
-        inputs['input_ids'][:, 0] = self.processor.tokenizer.enc_token_id
-        # BLIP special token '[DEC]
-        inputs['labels'][:, 0] = self.processor.tokenizer.bos_token_id
+        # BLIP special token '[ENC] # already done in tokenization
+        # inputs['input_ids'][:, 0] = self.processor.tokenizer.enc_token_id
+        # BLIP special token '[DEC] # already done in tokenization
+        # inputs['labels'][:, 0] = self.processor.tokenizer.bos_token_id
         return inputs
 
 @dataclass
@@ -94,7 +96,6 @@ class Product2Title:
         if self.text_dropout > 0:
             blank = self.template_src.format("", "")
             texts = [txt if lbl!=-1 else blank for txt, lbl in zip(texts, drop_labels)] 
-        labels = [self.template_tgt.format(b['title']) for b in features]
 
         inputs = self.processor(
                 images=images, 
@@ -105,9 +106,11 @@ class Product2Title:
                 truncation=True,
                 padding=True
         )
+        inputs['input_ids'][:, 0] = self.processor.tokenizer.enc_token_id
 
+        labels = [self.template_tgt.format(b['title']) for b in features]
         targets = self.processor(
-                text=labels, 
+                text=labels,
                 max_length=self.max_tgt_length,
                 return_tensors='pt',
                 return_attention_mask=True,
@@ -117,43 +120,28 @@ class Product2Title:
         inputs['labels'] = targets.input_ids
         inputs['decoder_attention_mask'] = targets.attention_mask
 
-        # BLIP special token '[ENC]
-        inputs['input_ids'][:, 0] = self.processor.tokenizer.enc_token_id
-        # BLIP special token '[DEC]
-        inputs['labels'][:, 0] = self.processor.tokenizer.bos_token_id
         return inputs
 
-# @dataclass
-# class Query2Title:
-#     processor: Union[ProcessorMixin] = None
-#     template_src: str = "{0}"
-#     template_tgt: str = "{0}"
-#     max_src_length: int = 16
-#     max_tgt_length: int = 16
-#
-#     def __call__(self, features: List[Dict[str, Any]]) -> Dict[str, Any]:
-#
-#         texts = ["Query: {0}".format(b['query']) for b in features]
-#         labels = [self.template_tgt.format(b['title']) for b in features]
-#
-#         inputs = self.processor(
-#                 text=texts,
-#                 max_length=self.max_src_length,
-#                 return_tensors='pt',
-#                 return_attention_mask=True,
-#                 truncation=True,
-#                 padding=True
-#         )
-#
-#         targets = self.processor(
-#                 text=labels, 
-#                 max_length=self.max_tgt_length,
-#                 return_tensors='pt',
-#                 return_attention_mask=True,
-#                 truncation=True,
-#                 padding=True
-#         )
-#         inputs['labels'] = targets.input_ids
-#         inputs['decoder_attention_mask'] = targets.attention_mask
-#
-#         return inputs
+@dataclass
+class ProductRerank:
+    processor: Union[ProcessorMixin] = None
+    template_src: str = "{0}"
+    template_tgt: str = None
+    max_src_length: int = 16
+    max_tgt_length: int = None
+
+    def __call__(self, features: List[Dict[str, Any]]) -> Dict[str, Any]:
+
+        texts = ["[ENC] {0} [SEP] {1} [SEP]".format(b['query'], b['title']) for b in features]
+
+        inputs = self.processor(
+                text=texts,
+                max_length=self.max_src_length,
+                return_tensors='pt',
+                add_special_tokens=False,
+                return_attention_mask=True,
+                truncation=True,
+                padding=True
+        )
+
+        return inputs

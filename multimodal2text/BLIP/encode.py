@@ -8,6 +8,7 @@ from transformers.models.blip.modeling_blip import BlipTextLMHeadModel, BlipText
 from transformers import BlipConfig, BlipPreTrainedModel, AutoProcessor
 from PIL import Image
 from tools import init_tokenizer
+from pyserini.encode import SpladeQueryEncoder
 
 @dataclass
 class BlipBiEncoder(ModelOutput):
@@ -15,12 +16,6 @@ class BlipBiEncoder(ModelOutput):
     embeds: Optional[torch.FloatTensor] = None
 
 class BlipForQueryEncoder(BlipPreTrainedModel):
-
-    @staticmethod
-    def lsr_max(logits):
-        relu = nn.ReLU(inplace=False)
-        values = torch.log(1 + relu(logits))
-        return values    
 
     def post_init(self):
         # self.decoder_start_token_id = 30522 # this has been initialized
@@ -32,41 +27,45 @@ class BlipForQueryEncoder(BlipPreTrainedModel):
         self.text_encoder_cls_token_id = 101
         # this is as same as tokenizer.enc_token_id
 
+
+    def __init__(self, config: BlipConfig, processor_name=None, pooling='max'):
+        super().__init__(config)
+
+        self.text_encoder = BlipTextModel(config.text_config, add_pooling_layer=False)
+        self.text_decoder = BlipTextLMHeadModel(config.text_config)
+
+        processor = AutoProcessor.from_pretrained(processor_name or config.name_or_path)
+        self.processor = init_tokenizer(processor)
+        self.pooling = pooling
         # clone from pyserini splade query encoder
         self.reverse_voc = {v: k for k, v in self.processor.tokenizer.vocab.items()}
         self.weight_range = 5
         self.quant_range = 256
 
-    def __init__(self, config: BlipConfig, processor_name=None, pooling='max'):
-        super().__init__(config)
-
-        processor = AutoProcessor.from_pretrained(processor_name or config.name_or_path)
-        self.processor = init_tokenizer(processor)
-        self.text_encoder = BlipTextModel(config.text_config, add_pooling_layer=False)
-        self.text_decoder = BlipTextLMHeadModel(config.text_config)
-        self.decoder_pad_token_id = config.text_config.pad_token_id
-        self.decoder_start_token_id = config.text_config.bos_token_id
-        self.pooling = pooling
-
         # Initialize weights and apply final processing
         self.post_init()
 
     def encode(self, queries: List[str], **processor_kwargs):
-        texts = [f"{q}" for q in queries]
+        texts = [f"[ENC] {q} [SEP]" for q in queries]
         inputs = self.processor(
                 text=texts, 
-                truncation=True,
-                padding=True,
                 return_tensors='pt', 
+                add_special_tokens=False,
+                truncation=True,
+                padding='longest',
                 **processor_kwargs
         ).to(self.device)
 
         # replace the first token with [encode]
-        inputs['input_ids'][:, 0] = self.processor.tokenizer.enc_token_id
-        values = self.lsr_max(self.forward(**inputs).logits)
-        values = values.cpu().detach().numpy()
-        raw_weights = self._output_to_weight_dicts(values)
-        return self._get_encoded_query_token_weight_dicts(raw_weights)[0]
+        input_ids = inputs['input_ids']
+        input_attention = inputs['attention_mask']
+        batch_logits = self.forward(input_ids)['logits']
+        batch_aggregated_logits, _ = torch.max(torch.log(1 + torch.relu(batch_logits))
+                                               * input_attention.unsqueeze(-1), dim=1)
+        batch_aggregated_logits = batch_aggregated_logits.cpu().detach().numpy()
+        raw_weights = self._output_to_weight_dicts(batch_aggregated_logits)
+        return self._get_encoded_query_token_wight_dicts(raw_weights)[0]
+
 
     def forward(
         self,
@@ -99,6 +98,7 @@ class BlipForQueryEncoder(BlipPreTrainedModel):
                 logits=query_logits[:, 0, :], # aggregated at first token
                 embeds=query_embeds
         )
+
     def _output_to_weight_dicts(self, batch_aggregated_logits):
         to_return = []
         for aggregated_logits in batch_aggregated_logits:
@@ -108,7 +108,7 @@ class BlipForQueryEncoder(BlipPreTrainedModel):
             to_return.append(d)
         return to_return
 
-    def _get_encoded_query_token_weight_dicts(self, tok_weights):
+    def _get_encoded_query_token_wight_dicts(self, tok_weights):
         to_return = []
         for _tok_weight in tok_weights:
             _weights = {}
@@ -144,35 +144,37 @@ class BlipForProductEncoder(BlipPreTrainedModel):
         self.vision_model = BlipVisionModel(config.vision_config)
         self.text_encoder = BlipTextModel(config.text_config, add_pooling_layer=False)
         self.text_decoder = BlipTextLMHeadModel(config.text_config)
-        self.decoder_pad_token_id = config.text_config.pad_token_id
-        self.decoder_start_token_id = config.text_config.bos_token_id
         self.pooling = pooling
 
         # Initialize weights and apply final processing
         self.post_init()
 
     def encode(self, titles: List[str], descriptions: List[str], images_path: List[str] = None, **processor_kwargs):
-        texts = [f"title: {t} context: {d}" for t, d in zip(titles, descriptions)]
+        texts = [f"{t} [SEP] {d}" for t, d in zip(titles, descriptions)]
         images = []
         for img in images_path:
             try:
-                images.append(Image.open(img.convert('RGB').resize((384, 384))))
+                images.append(
+                        Image.open(img).convert('RGB').resize((384, 384))
+                )
             except:
                 blank = Image.new('RGB', (384, 384), color=(255, 255, 255))
                 images.append(blank)
 
         inputs = self.processor(
-                images=images, text=texts,
+                images=images, 
+                text=[f"[ENC] {t} [SEP]" for t in texts],
+                return_tensors='pt',
+                add_special_tokens=False,
                 truncation=True,
                 padding=True,
-                return_tensors='pt',
                 **processor_kwargs
         ).to(self.device)
 
-        # replace the first with [ENC]
-        inputs['input_ids'][:, 0] = self.processor.tokenizer.enc_token_id
         values = self.lsr_max(self.forward(**inputs).logits)
-        values = values.cpu().detach().numpy()
+        # values = values.cpu().detach().numpy() 
+        # not return numpy because when generate logits, the torch.nonzero is better than numpy's
+        values = values.cpu().detach()
         return values
 
     def forward(
