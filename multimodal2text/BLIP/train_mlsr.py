@@ -5,7 +5,6 @@ import numpy as np
 import nltk
 from transformers import AutoProcessor
 from transformers import HfArgumentParser
-# from transformers import Trainer
 from trainer import MyTrainer
 from arguments import ModelArgs, DataArgs, TrainArgs
 from datasets import load_dataset
@@ -20,21 +19,31 @@ def main():
     else:
         model_args, data_args, training_args = parser.parse_args_into_dataclasses()
 
-    if training_args.text_generation:
-        from models_mlsr_wmtlm import BlipForQuestionAnswering
-        model = BlipForQuestionAnswering.from_pretrained(model_args.model_name_or_path)
-    else:
-        from models_mlsr import BlipForQuestionAnswering
-        model = BlipForQuestionAnswering.from_pretrained(model_args.model_name_or_path)
+    # processor
     processor = AutoProcessor.from_pretrained(model_args.processor_name)
     processor = init_tokenizer(processor)
-    
+
+    # modeling
+    if training_args.text_generation:
+        from models_mlsr_wgen import BlipForQuestionAnswering
+        model = BlipForQuestionAnswering.from_pretrained(
+                pretrained_model_name_or_path=model_args.model_name_or_path,
+                query_encoder='naver/splade-cocondenser-ensembledistil',
+                pooling=model_args.pooling, 
+        )
+    else:
+        from models_mlsr import BlipForQuestionAnswering
+        model = BlipForQuestionAnswering.from_pretrained(
+                pretrained_model_name_or_path=model_args.model_name_or_path,
+                query_encoder='naver/splade-cocondenser-ensembledistil',
+                pooling=model_args.pooling, 
+        )
+
     # Model: freezing
-    if training_args.freeze_vision_encoder:
-        for name, param in model.named_parameters():
-            if 'vision_model' in name:
-                param.requires_grad = False
-            print('param {} wont be optimized.'.format(name))
+    model.query_encoder.eval()
+    for name, param in model.query_encoder.named_parameters():
+        param.requires_grad = False
+    print('Freeze query encoder')
 
     # Data: dataset
     dataset = load_dataset('json', data_files=data_args.train_file)['train']

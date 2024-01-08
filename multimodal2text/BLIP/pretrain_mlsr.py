@@ -25,7 +25,6 @@ def main():
 
     # modeling
     if training_args.text_generation:
-        # from models_mlsr_wmtlm import BlipForQuestionAnswering
         from models_mlsr_wgen import BlipForQuestionAnswering
         model = BlipForQuestionAnswering.from_pretrained(
                 pretrained_model_name_or_path=model_args.model_name_or_path,
@@ -40,12 +39,12 @@ def main():
                 pooling=model_args.pooling, 
         )
 
-    # move into models
+    # Model: freezing
     model.query_encoder.eval()
     for name, param in model.query_encoder.named_parameters():
         param.requires_grad = False
     print('Freeze query encoder')
-    
+
     # Data: dataset
     dataset = load_dataset('json', data_files=data_args.train_file)['train']
     dataset = dataset.train_test_split(test_size=3000, seed=777)

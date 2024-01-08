@@ -1,18 +1,19 @@
-# append the document splade vectors
+export CUDA_VISIBLE_DEVICES=1,2
 VQA=Salesforce/blip-vqa-base
-
 ckpt=25000
-pooling=mean
-MODEL=models/blip-base-prt-mlsr-wgen-$pooling/checkpoint-$ckpt/
-mkdir -p data/mlsr_corpus/mean-$ckpt
+pooling=max
+wgen=-wgen
+MODEL=models/blip-base-prt-mlsr-${pooling}${wgen}/checkpoint-$ckpt/
+
+mkdir -p data/mlsr_corpus/prt-$pooling${wgen}-$ckpt/
 
 python multimodal2text/BLIP/append_collection_voc_vectors.py \
     --collection data/corpus.jsonl \
     --img_collection data/corpus-images.txt \
-    --collection_output data/mlsr_corpus/$pooling-$ckpt/corpus.jsonl \
+    --collection_output data/mlsr_corpus/prt-$pooling${wgen}-$ckpt/corpus.jsonl \
     --model_name_or_dir $MODEL \
     --processor_name $VQA \
-    --batch_size 32 \
+    --batch_size 64 \
     --max_length 512 \
     --device cuda \
     --quantization_factor 100

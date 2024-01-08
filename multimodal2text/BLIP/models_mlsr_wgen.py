@@ -170,10 +170,7 @@ class BlipForQuestionAnswering(BlipForQuestionAnswering_hf):
                 input_ids=labels,
                 attention_mask=decoder_attention_mask
         ).logits
-        query_result = self.pooling(
-                query_logits,
-                decoder_attention_mask
-        )
+        query_result = self.pooling(query_logits, decoder_attention_mask)
 
         if labels is not None and decoder_input_ids is None:
             # labels are already shifted right, see: https://github.com/huggingface/transformers/pull/23153
