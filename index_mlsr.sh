@@ -1,16 +1,27 @@
-export CUDA_VISIBLE_DEVICES=1,2
+export CUDA_VISIBLE_DEVICES=0,1
 VQA=Salesforce/blip-vqa-base
-ckpt=25000
-pooling=max
-wgen=-wgen
-MODEL=models/blip-base-prt-mlsr-${pooling}${wgen}/checkpoint-$ckpt/
+POOLING=max
+# wgen=-wgen
 
-mkdir -p data/mlsr_corpus/prt-$pooling${wgen}-$ckpt/
+CKPT=50000
+MODEL=models/blip-base-prt-mlsr-${POOLING}${wgen}/checkpoint-${CKPT}
+OUTPUT_DIR=data/mlsr_corpus/prt-${POOLING}${wgen}-$CKPT/
+mkdir -p $OUTPUT_DIR
+
+# this is executed
+CKPT=20000
+MODEL=models/blip-base-ft-mlsr-${POOLING}${wgen}/checkpoint-${CKPT}/
+OUTPUT_DIR=data/mlsr_corpus/ft-${POOLING}${wgen}-$CKPT/
+mkdir -p $OUTPUT_DIR
+
+MODEL=models/blip-base-ft+prt-mlsr-${POOLING}${wgen}/checkpoint-${CKPT}/
+OUTPUT_DIR=data/mlsr_corpus/ft+prt-${POOLING}${wgen}-$CKPT/
+mkdir -p $OUTPUT_DIR
 
 python multimodal2text/BLIP/append_collection_voc_vectors.py \
     --collection data/corpus.jsonl \
     --img_collection data/corpus-images.txt \
-    --collection_output data/mlsr_corpus/prt-$pooling${wgen}-$ckpt/corpus.jsonl \
+    --collection_output $OUTPUT_DIR/corpus.jsonl \
     --model_name_or_dir $MODEL \
     --processor_name $VQA \
     --batch_size 64 \
@@ -18,11 +29,11 @@ python multimodal2text/BLIP/append_collection_voc_vectors.py \
     --device cuda \
     --quantization_factor 100
 
-# # pyserini indexing with pretokenized impact vectors
-# python -m pyserini.index.lucene \
-#   --collection JsonVectorCollection \
-#   --input data/mlsr_corpus/$pooling-$ckpt \
-#   --index indexing/trec-pds-simplified-mlsr \
-#   --generator DefaultLuceneDocumentGenerator \
-#   --threads 36 \
-#   --impact --pretokenized
+# pyserini indexing with pretokenized impact vectors
+python -m pyserini.index.lucene \
+  --collection JsonVectorCollection \
+  --input $OUTPUT_DIR \
+  --index indexing/trec-pds-simplified-mlsr \
+  --generator DefaultLuceneDocumentGenerator \
+  --threads 36 \
+  --impact --pretokenized

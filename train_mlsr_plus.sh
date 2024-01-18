@@ -1,15 +1,15 @@
-export CUDA_VISIBLE_DEVICES=1
+export CUDA_VISIBLE_DEVICES=0
 VQA=Salesforce/blip-vqa-base
-PRETRAINED=models/blip-base-prt-mlsr-max/checkpoint-25000
+# PRETRAINED=models/blip-base-prt-mlsr-max/checkpoint-25000
 
 python3 multimodal2text/BLIP/train_mlsr.py \
-    --model_name_or_path $PRETRAINED \
+    --model_name_or_path $VQA \
     --config_name $VQA \
     --processor_name $VQA \
     --train_file data/trec-pds.train.m2t.product2query.jsonl \
     --max_src_length 128 \
     --max_tgt_length 16 \
-    --output_dir models/blip-base-ft+prt-mlsr-max \
+    --output_dir models/blip-base-ft \
     --overwrite_output_dir true \
     --do_train \
     --save_strategy steps \
@@ -22,8 +22,8 @@ python3 multimodal2text/BLIP/train_mlsr.py \
     --weight_decay 0.05 \
     --remove_unused_columns false \
     --report_to wandb \
-    --text_generation false \
+    --text_generation true \
     --template_src "{0} [SEP] {1}"\
     --template_tgt "{0}" \
     --pooling max \
-    --run_name blip-base-ft+prt-mlsr-max
+    --run_name mlsr++

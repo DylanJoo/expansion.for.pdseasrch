@@ -14,18 +14,22 @@ class MyTrainer(Trainer):
             for k, v in to_return[1].losses.items():
                 print(k, v.item())
 
-            top_k = torch.topk(to_return[1].query_logits, k=5, dim=-1).indices
+            tokens = self.processor.tokenizer.batch_decode(
+                    inputs['labels'][:5], skip_special_tokens=True
+            )
+            print('\nl: ' + '\nl: '.join(tokens) + '\n')
+
+            top_k = torch.topk(to_return[1].query_logits[:5], k=5, dim=-1).indices
             top_k_tokens = self.processor.tokenizer.batch_decode(
                     top_k.detach().cpu().numpy()[:, :]
             )
             print('\nq: ' + '\nq: '.join(top_k_tokens) + '\n')
 
-            top_k = torch.topk(to_return[1].logits, k=5, dim=-1).indices
+            top_k = torch.topk(to_return[1].document_logits[:5], k=5, dim=-1).indices
             top_k_tokens = self.processor.tokenizer.batch_decode(
                     top_k.detach().cpu().numpy()[:, :]
             )
-            print('d: ' + '\nd: '.join(top_k_tokens) + '\n')
-
+            print('\nd: ' + '\nd: '.join(top_k_tokens) + '\n')
 
         if return_outputs:
             return to_return

@@ -9,9 +9,10 @@ from transformers.utils import ModelOutput
 @dataclass
 class BlipTextVisionModelOutput(ModelOutput):
     logits: Optional[torch.FloatTensor] = None
-    query_logits: Optional[torch.FloatTensor] = None
     loss: Optional[torch.FloatTensor] = None
     losses: Optional[dict] = None
+    query_logits: Optional[torch.FloatTensor] = None
+    document_logits: Optional[torch.FloatTensor] = None
 
 class FLOPS:
     """constraint from Minimizing FLOPs to Learn Efficient Sparse Representations
@@ -27,10 +28,20 @@ def splade_mean(logits, attention_mask):
     values = torch.mean(torch.log(1 + relu(logits)) * attention_mask.unsqueeze(-1), dim=1)
     return values    
 
-def splade_max(logits, attention_mask=None):
-    # tokens: output of a huggingface tokenizer
+def splade_max(logits, attention_mask=None, labels_=None):
+    """
+    param logits: the logit values indicate the token distribution before log().
+    param attention_mask: the mask for dimension of token length, the shape will be (B, L, 1)
+    param label_mask: the mask for dimension of vocabulary, the shape will be (B, 1, V)
+    """
     relu = nn.ReLU(inplace=False)
-    if attention_mask is not None:
+
+    if labels_ is not None:
+        mask = torch.ones(logits.size(0), 1, logits.size(-1)).to(logits.device)
+        mask.scatter_(-1, labels_.unsqueeze(1), 0)
+        logits = logits * mask
+
+    if attention_mask is not None: # [NOTE] masked element in sequence 
         values, _ = torch.max(torch.log(1 + relu(logits)) * attention_mask.unsqueeze(-1), dim=1)
     else:
         values = torch.log(1 + relu(logits))
@@ -51,8 +62,8 @@ class BlipForQuestionAnswering(BlipForQuestionAnswering_hf):
         self.query_encoder = AutoModelForMaskedLM.from_pretrained(query_encoder)
         self.query_encoder.eval()
         # regularization
-        self.lambda_q = 0.01
-        self.lambda_d = 0.008
+        self.lambda_q = 0.01 * 0 # since we use the freezed q decoder
+        self.lambda_d = 0.001
         self.ignored_token_ids = []
 
     def post_init(self):
@@ -64,25 +75,6 @@ class BlipForQuestionAnswering(BlipForQuestionAnswering_hf):
 
         self.text_encoder_cls_token_id = 101
         # this is as same as tokenizer.enc_token_id
-
-    def set_ignored_ids(self, token_ids):
-        self.ignored_token_ids += token_ids
-
-    def generate_and_clean_bow(self, input_ids, output_dim, values=None):
-        bs = input_ids.shape[0]
-
-        # generate
-        bow = torch.zeros(bs, output_dim).to(input_ids.device)
-        if values is None:
-            bow[torch.arange(bs).unsqueeze(-1), input_ids] = 1
-        else:
-            bow[torch.arange(bs).unsqueeze(-1), input_ids] = values
-
-        # clean
-        for tok_id in self.ignored_token_ids:
-            bow[:, tok_id] = 0  
-
-        return bow
 
     def forward(
         self,
@@ -110,6 +102,7 @@ class BlipForQuestionAnswering(BlipForQuestionAnswering_hf):
             output_hidden_states if output_hidden_states is not None else self.config.output_hidden_states
         )
 
+        ## Image encoding
         vision_outputs = self.vision_model(
             pixel_values=pixel_values,
             output_attentions=output_attentions,
@@ -120,7 +113,7 @@ class BlipForQuestionAnswering(BlipForQuestionAnswering_hf):
         image_embeds = vision_outputs[0]
         image_attention_mask = torch.ones(image_embeds.size()[:-1], dtype=torch.long)
 
-        # product text encoding
+        ## Text product encoding
         product_embeds_0 = self.text_encoder(
             input_ids=input_ids,
             attention_mask=attention_mask,
@@ -129,7 +122,7 @@ class BlipForQuestionAnswering(BlipForQuestionAnswering_hf):
             return_dict=return_dict,
         )[0]
 
-        # product image-text encoding
+        ## Multimodal image-text encoding
         product_embeds_1 = self.text_encoder(
             input_ids=input_ids,
             attention_mask=attention_mask,
@@ -138,48 +131,25 @@ class BlipForQuestionAnswering(BlipForQuestionAnswering_hf):
             return_dict=return_dict,
         )[0]
 
-        ## [CLS] as start token
-        cls_ids = torch.full(
-            (input_ids.size(0), 1), fill_value=self.text_encoder_cls_token_id, device=input_ids.device
-        )
-
-        # product decoding from product text encoding
-        product_logits_0 = self.text_decoder(
-            input_ids=cls_ids,
-            attention_mask=None,
-            encoder_hidden_states=product_embeds_0,
-            encoder_attention_mask=attention_mask,
-            return_dict=return_dict,
-            reduction="none",
-        ).logits[:, 0, :-2]
-        product_result_0 = self.pooling(product_logits_0)
-
-        # product decoding from product image-text encoding
-        product_logits_1 = self.text_decoder(
-            input_ids=cls_ids,
-            attention_mask=None,
-            encoder_hidden_states=product_embeds_1,
-            encoder_attention_mask=attention_mask,
-            return_dict=return_dict,
-            reduction="none",
-        ).logits[:, 0, :-2]
-        product_result_1 = self.pooling(product_logits_1)
-
-        # query decoding from query text encoding
+        ## Query encoding 
         query_logits = self.query_encoder(
-                input_ids=labels,
+                input_ids=labels, 
                 attention_mask=decoder_attention_mask
         ).logits
-        query_result = self.pooling(query_logits, decoder_attention_mask)
+        query_result = self.pooling(
+                query_logits, decoder_attention_mask, labels
+        )
+
 
         if labels is not None and decoder_input_ids is None:
             # labels are already shifted right, see: https://github.com/huggingface/transformers/pull/23153
             decoder_input_ids = labels.clone()
             decoder_input_ids[:, 0] = self.decoder_start_token_id
 
-        ## [DEC] as decoding start token
-        # query generation from text representation
-        product_outputs_0_kd = self.text_decoder(
+        ## Query generation with different encoder outputs
+        ### [DEC] as decoding start token
+        #### decode from text-only encoding
+        product_outputs_0 = self.text_decoder(
             input_ids=decoder_input_ids,
             attention_mask=decoder_attention_mask,
             encoder_hidden_states=product_embeds_0,
@@ -188,14 +158,13 @@ class BlipForQuestionAnswering(BlipForQuestionAnswering_hf):
             return_dict=return_dict,
             reduction="mean",
         )
-        product_logits_0_kd = product_outputs_0_kd.logits[:, :, :-2]
-        product_result_0_kd = self.pooling(
-                product_logits_0_kd, 
-                decoder_attention_mask
-        ) ##(bsz, Vocab)
+        product_logits_0 = product_outputs_0.logits
+        product_result_0 = self.pooling(
+                product_logits_0, decoder_attention_mask, labels
+        )[:, :-2] 
 
-        # query generation from text-iamge representation
-        product_outputs_1_kd = self.text_decoder(
+        #### decode from image-text encoding
+        product_outputs_1 = self.text_decoder(
             input_ids=decoder_input_ids,
             attention_mask=decoder_attention_mask,
             encoder_hidden_states=product_embeds_1,
@@ -204,14 +173,13 @@ class BlipForQuestionAnswering(BlipForQuestionAnswering_hf):
             return_dict=return_dict,
             reduction="mean",
         )
-        product_logits_1_kd = product_outputs_1_kd.logits[:, :, :-2]
-        product_result_1_kd = self.pooling(
-                product_logits_1_kd,
-                decoder_attention_mask
-        ) ##(bsz, Vocab)
+        product_logits_1 = product_outputs_1.logits
+        product_result_1 = self.pooling(
+                product_logits_1, decoder_attention_mask, labels
+        )[:, :-2]
 
         # loss of generation
-        loss_mtlm = (product_outputs_0_kd.loss + product_outputs_1_kd.loss) / 2
+        loss_mtlm = (product_outputs_0.loss + product_outputs_1.loss) / 2
 
         # loss of splade
         CELoss = nn.CrossEntropyLoss()
@@ -222,29 +190,22 @@ class BlipForQuestionAnswering(BlipForQuestionAnswering_hf):
         loss_1 = CELoss(scores_1, torch.arange(0, scores_1.size(0), device=scores_1.device)) 
         loss_pair = CELoss(scores_pair, torch.ones(scores_pair.size(0), dtype=torch.long, device=scores_pair.device)) 
 
-        # loss of knowledge distillation
-        MSELoss = nn.MSELoss()
-        loss_0_kd = MSELoss(product_result_0, product_result_0_kd)
-        loss_1_kd = MSELoss(product_result_1, product_result_1_kd)
-
         # loss for regularization
         L1Loss = FLOPS()
         loss_reg_q = L1Loss(query_result) * self.lambda_q
         loss_reg_d = (L1Loss(product_result_1) + L1Loss(product_result_0)) * self.lambda_d
 
         return BlipTextVisionModelOutput(
-                logits=product_result_1,
-                query_logits=query_result,
-                loss=(loss_0+loss_1+loss_pair) + (loss_1_kd+loss_0_kd) + (loss_reg_q+loss_reg_d) + loss_mtlm,
+                logits=product_logits_1,
+                loss= loss_mtlm + (loss_0+loss_1+loss_pair) + (loss_reg_q+loss_reg_d),
                 losses={
-                    'splade_loss_0': loss_0, 
-                    'splade_loss_1': loss_1, 
-                    'splade_loss_pair': loss_pair,
-                    'generation_0': product_outputs_0_kd.loss, 
-                    'generation_1': product_outputs_1_kd.loss,
-                    'self_kd_loss_0': loss_0_kd,
-                    'self_kd_loss_1': loss_1_kd,
-                    'reg_loss_q': loss_reg_q,
+                    'splade_loss_(q, dt)': loss_0, 
+                    'splade_loss_(q, dm)': loss_1, 
+                    'splade_loss_(q-dt, q-dm)': loss_pair,
+                    'generation_0': product_outputs_0.loss, 
+                    'generation_1': product_outputs_1.loss,
                     'reg_loss_d': loss_reg_d/2,
-                }
+                },
+                query_logits=query_result,
+                document_logits=product_result_1
         )

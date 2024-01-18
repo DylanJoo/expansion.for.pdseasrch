@@ -19,11 +19,11 @@ def main():
     else:
         model_args, data_args, training_args = parser.parse_args_into_dataclasses()
 
-    # processor
+    # Config: processor
     processor = AutoProcessor.from_pretrained(model_args.processor_name)
     processor = init_tokenizer(processor)
 
-    # modeling
+    # Config: modeling
     if training_args.text_generation:
         from models_mlsr_wgen import BlipForQuestionAnswering
         model = BlipForQuestionAnswering.from_pretrained(
