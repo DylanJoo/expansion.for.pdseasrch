@@ -48,7 +48,9 @@ def main():
     # Data: dataset
     dataset = load_dataset('json', data_files=data_args.train_file)['train']
     dataset = dataset.train_test_split(test_size=3000, seed=777)
+    dataset = dataset.map(lambda example: {"query": norm(example["query"])})
     print(dataset)
+    print(dataset[0])
 
     # Data: collator
     data_collator = datacollator.Product2Query(

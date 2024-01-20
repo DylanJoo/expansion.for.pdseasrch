@@ -59,8 +59,8 @@ class Product2Query:
                 padding=True
         )
         inputs['labels'] = targets.input_ids
+        inputs['labels'].masked_fill_(~targets.attention_mask, -100)   
         inputs['decoder_attention_mask'] = targets.attention_mask
-
         return inputs
 
 @dataclass
@@ -113,31 +113,6 @@ class Product2Title:
                 padding=True
         )
         inputs['labels'] = targets.input_ids
-        inputs['labels'][:, 0] = self.processor.tokenizer.bos_token_id
+        inputs['labels'].masked_fill_(~targets.attention_mask, -100)   
         inputs['decoder_attention_mask'] = targets.attention_mask
-
         return inputs
-
-# @dataclass
-# class ProductRerank:
-#     processor: Union[ProcessorMixin] = None
-#     template_src: str = "{0}"
-#     template_tgt: str = None
-#     max_src_length: int = 16
-#     max_tgt_length: int = None
-#
-#     def __call__(self, features: List[Dict[str, Any]]) -> Dict[str, Any]:
-#
-#         texts = ["[ENC] {0} [SEP] {1} [SEP]".format(b['query'], b['title']) for b in features]
-#
-#         inputs = self.processor(
-#                 text=texts,
-#                 max_length=self.max_src_length,
-#                 return_tensors='pt',
-#                 add_special_tokens=False,
-#                 return_attention_mask=True,
-#                 truncation=True,
-#                 padding=True
-#         )
-#
-#         return inputs

@@ -131,20 +131,20 @@ class BlipForQuestionAnswering(BlipForQuestionAnswering_hf):
             return_dict=return_dict,
         )[0]
 
+        if labels is not None and decoder_input_ids is None:
+            # labels are already shifted right, see: https://github.com/huggingface/transformers/pull/23153
+            labels_inputs = labels.masked_fill(labels == -100, processor.tokenizer.pad_token_id)
+            decoder_input_ids = labels_inputs.clone()
+            decoder_input_ids[:, 0] = self.decoder_start_token_id
+
         ## Query encoding 
         query_logits = self.query_encoder(
-                input_ids=labels, 
+                input_ids=labels_inputs,
                 attention_mask=decoder_attention_mask
         ).logits
         query_result = self.pooling(
-                query_logits, decoder_attention_mask, labels
+                query_logits, decoder_attention_mask, labels_inputs
         )
-
-
-        if labels is not None and decoder_input_ids is None:
-            # labels are already shifted right, see: https://github.com/huggingface/transformers/pull/23153
-            decoder_input_ids = labels.clone()
-            decoder_input_ids[:, 0] = self.decoder_start_token_id
 
         ## Query generation with different encoder outputs
         ### [DEC] as decoding start token
@@ -160,7 +160,7 @@ class BlipForQuestionAnswering(BlipForQuestionAnswering_hf):
         )
         product_logits_0 = product_outputs_0.logits
         product_result_0 = self.pooling(
-                product_logits_0, decoder_attention_mask, labels
+                product_logits_0, decoder_attention_mask # since query has mask by labels, here is fine for this.
         )[:, :-2] 
 
         #### decode from image-text encoding
@@ -175,7 +175,7 @@ class BlipForQuestionAnswering(BlipForQuestionAnswering_hf):
         )
         product_logits_1 = product_outputs_1.logits
         product_result_1 = self.pooling(
-                product_logits_1, decoder_attention_mask, labels
+                product_logits_1, decoder_attention_mask # since query has mask by labels, here is fine for this.
         )[:, :-2]
 
         # loss of generation

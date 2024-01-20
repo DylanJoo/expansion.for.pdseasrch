@@ -53,9 +53,8 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     # load hf 
-    from models_vis_enhanced import BlipForQuestionAnswering
+    from transformers import AutoProcessor, BlipForQuestionAnswering
     model = BlipForQuestionAnswering.from_pretrained(args.model_name)
-    from transformers import AutoProcessor
     processor = AutoProcessor.from_pretrained(args.model_hf_name)
     model = model.to(args.device)
     model = model.eval()

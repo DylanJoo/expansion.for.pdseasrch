@@ -1,19 +1,22 @@
-export CUDA_VISIBLE_DEVICES=0,1
+export CUDA_VISIBLE_DEVICES=1
 VQA=Salesforce/blip-vqa-base
 POOLING=max
 # wgen=-wgen
 
+# pretrained only
 CKPT=50000
 MODEL=models/blip-base-prt-mlsr-${POOLING}${wgen}/checkpoint-${CKPT}
 OUTPUT_DIR=data/mlsr_corpus/prt-${POOLING}${wgen}-$CKPT/
 mkdir -p $OUTPUT_DIR
 
-# this is executed
+# fine-tuned only
 CKPT=20000
 MODEL=models/blip-base-ft-mlsr-${POOLING}${wgen}/checkpoint-${CKPT}/
 OUTPUT_DIR=data/mlsr_corpus/ft-${POOLING}${wgen}-$CKPT/
 mkdir -p $OUTPUT_DIR
 
+# pretrained then fine-tuned
+CKPT=20000
 MODEL=models/blip-base-ft+prt-mlsr-${POOLING}${wgen}/checkpoint-${CKPT}/
 OUTPUT_DIR=data/mlsr_corpus/ft+prt-${POOLING}${wgen}-$CKPT/
 mkdir -p $OUTPUT_DIR
