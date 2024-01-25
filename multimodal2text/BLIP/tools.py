@@ -7,10 +7,6 @@ import collections
 import warnings
 from PIL import Image
 import requests
-import string
-
-def norm(text):
-    return text.translate(str.maketrans('', '', string.punctuation))
 
 def init_tokenizer(processor):
     processor.tokenizer.add_special_tokens({'bos_token':'[DEC]'}) # 30522

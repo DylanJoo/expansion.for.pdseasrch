@@ -59,7 +59,7 @@ class Product2Query:
                 padding=True
         )
         inputs['labels'] = targets.input_ids
-        inputs['labels'].masked_fill_(~targets.attention_mask, -100)   
+        inputs['labels'].masked_fill_(~targets.attention_mask.bool(), -100)   
         inputs['decoder_attention_mask'] = targets.attention_mask
         return inputs
 
@@ -113,6 +113,6 @@ class Product2Title:
                 padding=True
         )
         inputs['labels'] = targets.input_ids
-        inputs['labels'].masked_fill_(~targets.attention_mask, -100)   
+        inputs['labels'].masked_fill_(~targets.attention_mask.bool(), -100)   
         inputs['decoder_attention_mask'] = targets.attention_mask
         return inputs

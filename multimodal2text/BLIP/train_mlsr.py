@@ -10,6 +10,9 @@ from arguments import ModelArgs, DataArgs, TrainArgs
 from datasets import load_dataset
 from tools import init_tokenizer
 import datacollator 
+import string
+def norm(text):
+    return text.translate(str.maketrans('', '', string.punctuation))
 
 def main():
     parser = HfArgumentParser((ModelArgs, DataArgs, TrainArgs))
@@ -50,7 +53,6 @@ def main():
     dataset = dataset.train_test_split(test_size=3000, seed=777)
     dataset = dataset.map(lambda example: {"query": norm(example["query"])})
     print(dataset)
-    print(dataset[0])
 
     # Data: collator
     data_collator = datacollator.Product2Query(

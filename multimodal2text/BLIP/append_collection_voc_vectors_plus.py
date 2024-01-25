@@ -4,15 +4,19 @@ import argparse
 import torch
 from collections import defaultdict
 from datasets import Dataset
-from tools import batch_iterator, load_images
 from transformers import BlipForQuestionAnswering
 from transformers import AutoProcessor
-from mlsr_utils import *
+from tools import batch_iterator, load_images
+from mlsr_utils import batch_transform_token_ids, batch_map_word_values
 from PIL import Image
-from tools import init_tokenizer
+from tools import init_tokenizer, batch_iterator
 import torch.nn as nn
 
-def generate_vocab_vector(batch, model, processor, minimum=0, device='cpu', max_length=256, quantization_factor=1000):
+import string
+def norm(text):
+    return text.translate(str.maketrans('', '', string.punctuation))
+
+def generate_vocab_vector(batch, model, minimum=0, device='cpu', max_length=256, quantization_factor=1000, mask_appeared_tokens=False):
     """
     params: batch: Dict[List[str]]
     returns: vectors: List[Dict]
@@ -23,60 +27,56 @@ def generate_vocab_vector(batch, model, processor, minimum=0, device='cpu', max_
     image_blank = Image.new('RGB', (384, 384), color=(255, 255, 255))
     for img in batch['image_path']:
         try:
-            images.append(Image.open(img).convert('RGB').resize((384, 384)))
+            images.append( Image.open(img).convert('RGB').resize((384, 384)) )
         except:
             images.append(image_blank)
 
     # tokenization
-    inputs = processor(
-            images=images, 
-            text=texts,
-            return_tensors='pt',
-            return_attention_mask=True,
-            truncation=True,
-            padding=True,
-            max_length=max_length
-    ).to(device)
+    inputs = processor(images=images, 
+                       text=texts,
+                       return_tensors='pt',
+                       padding='max_length',
+                       truncation=True,
+                       max_length=max_length,
+                       return_attention_mask=True).to(device)
+    inputs['input_ids'][:, 0] = processor.tokenizer.enc_token_id
 
-    # use the `encode` function in BlipEncoders
     with torch.no_grad():
-        outputs = model.generate(
-                **inputs, return_dict_in_generate=True, output_scores=True, max_new_tokens=16
-        )
+        outputs = model.generate(**inputs, 
+                                 return_dict_in_generate=True, 
+                                 output_scores=True, 
+                                 max_new_tokens=32)
 
-        logits = torch.cat([outputs.scores[i][:, None, :] for i in range(len(outputs.scores))], dim=1)
-        decoded_token_ids = outputs.sequences[:, 1:] # will not include the firs token in logits
+        logits = torch.cat([outputs.scores[i][:, None, :] \
+                for i in range(len(outputs.scores))], dim=1)
+        decoded_token_ids = outputs.sequences[:, 1:] 
     
     ## get tokens, strings, offset_mapping
-    tokenizer = processor.tokenizer
-    strings, offset_mapping, attention_mask = batch_transform_token_ids(
-            tokenizer, 
-            decoded_token_ids,
-            return_attention_mask=True
-    )
-    bow_weights = batch_map_word_values(
-            logits, 
-            decoded_token_ids, 
-            strings, 
-            offset_mapping, 
-            is_pooled=False
-    )
+    strings, encoded_token_ids, offset_mapping = \
+            batch_transform_token_ids(processor.tokenizer,
+                                      decoded_token_ids)
 
-    ## filter the appeared tokens, mask the appeared
     relu = nn.ReLU(inplace=False)
-    mask = torch.ones(logits.size(0), 1, logits.size(-1)).to(logits.device)
-    mask.scatter_(-1, decoded_token_ids.unsqueeze(1), 0)
-    logits = logits * mask
+    attention_mask = (decoded_token_ids != processor.tokenizer.pad_token_id).long()
+    doc_reps, _ = torch.max(torch.log(1 + relu(logits)) * attention_mask.unsqueeze(-1), dim=1)
 
-    ## mask the un-attented
-    if attention_mask is not None: 
-        attention_mask = attention_mask.to(logits.device)
-        doc_reps, _ = torch.max(torch.log(1 + relu(logits)) * attention_mask.unsqueeze(-1), dim=1)
-    else:
-        doc_reps = torch.log(1 + relu(logits))
+    ## it can be retrived from pooled logits
+    bow_weights = batch_map_word_values(doc_reps,          
+                                        encoded_token_ids,
+                                        strings, 
+                                        offset_mapping, 
+                                        is_pooled=True)
 
-    ## filter the apperaed tokens (that have been transformed into words)
-    cols = torch.nonzero(doc_reps).cpu().numpy()
+    if mask_appeared_tokens:
+        mask = torch.ones(doc_reps.size(0), doc_reps.size(-1), device=device)
+        mask.scatter_(-1, decoded_token_ids, 0)
+        mask.scatter_(-1, encoded_token_ids, 0)
+        doc_reps = (doc_reps * mask).cpu()
+
+    ### prevent some of the logits being replace by word-level, and thus no weight at all
+    doc_reps[:, processor.tokenizer.pad_token_id] = 1e-3 # small logits 
+    ### get the number of non-zero dimensions in the rep:
+    cols = torch.nonzero(doc_reps)
 
     # now let's inspect the bow representation:
     weights = defaultdict(list)
@@ -84,21 +84,21 @@ def generate_vocab_vector(batch, model, processor, minimum=0, device='cpu', max_
         i, j = col.tolist()
         weights[i].append( (j, doc_reps[i, j].cpu().tolist()) )
 
-    # sort them 
+    # sort them
     def sort_dict(dictionary, quantization_factor, bow_dictionary=None):
-        # here is the token parts
-        d = {k: v*quantization_factor for (k, v) in dictionary if v >= minimum}
+        d = {reverse_voc[k]: v*quantization_factor for (k, v) in dictionary if v >= minimum}
 
         if bow_dictionary is not None:
-            d_bows = {w+"@": v*quantization_factor for (w, v) in bow_dictionary if v >= minimum}
+            d_bows = {norm(k): v*quantization_factor for (k, v) in bow_dictionary.items() if v >= minimum}
+            d.update(d_bows)
 
-        d = {reverse_voc[k]: round(v, 2) for k, v in d.items()}
-        d.update(d_bows)
-
-        sorted_d = {k: round(v, 2) for k, v in sorted(d.items(), key=lambda item: item[1], reverse=True)}
+        sorted_d = {k: round(v, 2) for k, v in sorted(d.items(), key=lambda item: item[1], reverse=True) if v >= minimum}
+        sorted_d.pop('[SEP]', None) # remove spec token
+        sorted_d.pop('[CLS]', None) # remove spec token
+        sorted_d.pop('[PAD]', None) # remove spec token
         return sorted_d
 
-    return [sort_dict(weight, quantization_factor, bow_weights[i].items()) for i, weight in weights.items()]
+    return [sort_dict(weight, quantization_factor, bow_weights[i]) for i, weight in weights.items()]
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -112,6 +112,7 @@ if __name__ == '__main__':
     parser.add_argument("--quantization_factor", type=int, default=1000)
     parser.add_argument("--device", type=str, default=None)
     parser.add_argument("--minimum", type=float, default=0)
+    parser.add_argument("--mask_appeared_tokens", action='store_true', default=False)
     parser.add_argument("--debug", action='store_true', default=False)
     args = parser.parse_args()
 
@@ -119,16 +120,15 @@ if __name__ == '__main__':
     model = BlipForQuestionAnswering.from_pretrained(args.model_name_or_dir)
     model.to(args.device)
     model.eval()
-
     processor = AutoProcessor.from_pretrained(args.processor_name)
     processor = init_tokenizer(processor)
     reverse_voc = {v: k for k, v in processor.tokenizer.vocab.items()}
 
     # add additional 2 tokens
-    offset = model.text_decoder.config.vocab_size - len(reverse_voc)
-    for i in range(offset):
-        print(f"add {i} offset token: ")
-        reverse_voc.update({len(reverse_voc): f"[unused_{i}]"})
+    # offset = model.text_decoder.config.vocab_size - len(reverse_voc)
+    # for i in range(offset):
+    #     print(f"add {i} offset token: ")
+    #     reverse_voc.update({len(reverse_voc): f"[unused_{i}]"})
 
     # load data: image
     images = load_images(args.img_collection)
@@ -142,12 +142,10 @@ if __name__ == '__main__':
                     'title': item['title'],
                     'description': item['description'] }
             image = images.get(str(item['doc_id']), None)
-            if image:
-                data.update({'image_path': image})
+            data.update({'image_path': image})
             data_list.append(data)
 
-            # remove this after pretesting
-            if len(data_list) >= 100 and args.debug:
+            if len(data_list) >= 10 and args.debug:
                 break
 
     dataset = Dataset.from_list(data_list)
@@ -160,14 +158,14 @@ if __name__ == '__main__':
         batch_vectors = generate_vocab_vector(
                 batch=batch,
                 model=model,
-                processor=processor,
                 minimum=args.minimum,
                 device=args.device,
                 max_length=args.max_length,
-                quantization_factor=args.quantization_factor
+                quantization_factor=args.quantization_factor,
+                mask_appeared_tokens=args.mask_appeared_tokens
         )
         assert len(batch['doc_id']) == len(batch_vectors), \
-                'Mismatched amount of examples'
+                f"Mismatched amount of examples, got {len(batch['doc_id'])} and {len(batch_vectors)}"
 
         vectors += batch_vectors
 
@@ -182,7 +180,7 @@ if __name__ == '__main__':
 
         fout.write(json.dumps({
             "id": doc_id, 
-            "contents": title + " " + description,
+            "contents": title + " [SEP] " + description,
             "vector": vectors[i]
         }, ensure_ascii=False)+'\n')
 

@@ -7,7 +7,7 @@ from tqdm import tqdm
 import json
 import argparse
 from pyserini.search.lucene import LuceneImpactSearcher
-from pyserini.encode import SpladeQueryEncoder
+from encode import BlipForQueryEncoder
 
 def load_query(path):
     data = collections.defaultdict(str)
@@ -29,7 +29,24 @@ def batch_iterator(iterable, size=1, return_index=False):
             yield iterable[ndx:min(ndx + size, l)]
 
 def search(args):
-    query_encoder = SpladeQueryEncoder(args.encoder, device=args.device)
+    if args.use_lexical:
+        query_encoder = SpladeQueryLexicalEncoder(
+                args.encoder, 
+                device=args.device, 
+                mask_appeared_tokens=False if args.include_both else True,
+                gamma_token=1,
+                gamma_word=1.5
+        )
+    else:
+        # query_encoder = SpladeQueryEncoder(
+        #         args.encoder, device=args.device
+        # )
+        query_encoder = BlipForQueryEncoder.from_pretrained(
+                args.encoder, 
+                processor_name=args.processor, 
+                pooling="max"
+        )
+    query_encoder.eval()
     searcher = LuceneImpactSearcher(args.index, query_encoder, args.min_idf)
 
     # for example
@@ -53,6 +70,8 @@ def search(args):
             ):
             qids_batch = qids[start: end]
             qtexts_batch = qtexts[start: end]
+            # for qtexts in qtexts_batch:
+            #     print(query_encoder.encode(qtexts))
             hits = searcher.batch_search(
                     queries=qtexts_batch, 
                     qids=qids_batch, 
@@ -68,11 +87,14 @@ if __name__ == '__main__':
     parser.add_argument("--min_idf",type=float, default=0)
     parser.add_argument("--index", default=None, type=str)
     parser.add_argument("--encoder", type=str)
+    parser.add_argument("--processor", type=str)
     parser.add_argument("--output", default='../runs/run.sample.txt', type=str)
     # special args
     parser.add_argument("--query", default=None, type=str)
     parser.add_argument("--batch_size", default=1, type=int)
     parser.add_argument("--device", default='cpu', type=str)
+    parser.add_argument("--use_lexical", action='store_true', default=False)
+    parser.add_argument("--include_both", action='store_true', default=False)
     args = parser.parse_args()
 
     os.makedirs('runs', exist_ok=True)

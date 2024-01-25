@@ -14,8 +14,10 @@ class MyTrainer(Trainer):
             for k, v in to_return[1].losses.items():
                 print(k, v.item())
 
+            labels_clean = inputs['labels'].clone()
+            labels_clean = labels_clean.masked_fill(labels_clean == -100, model.text_decoder.config.pad_token_id)
             tokens = self.processor.tokenizer.batch_decode(
-                    inputs['labels'][:5], skip_special_tokens=True
+                    labels_clean[:5], skip_special_tokens=True
             )
             print('\nl: ' + '\nl: '.join(tokens) + '\n')
 
