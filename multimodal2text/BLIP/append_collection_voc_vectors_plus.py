@@ -22,7 +22,7 @@ def generate_vocab_vector(batch, model, minimum=0, device='cpu', max_length=256,
     returns: vectors: List[Dict]
     """
     # prepare text and images
-    texts = [f"{t} [SEP] {d}" for t, d in zip(batch['title'], batch['description'])]
+    texts = [f"{t} {d}" for t, d in zip(batch['title'], batch['description'])]
     images = []
     image_blank = Image.new('RGB', (384, 384), color=(255, 255, 255))
     for img in batch['image_path']:
@@ -45,7 +45,7 @@ def generate_vocab_vector(batch, model, minimum=0, device='cpu', max_length=256,
         outputs = model.generate(**inputs, 
                                  return_dict_in_generate=True, 
                                  output_scores=True, 
-                                 max_new_tokens=32)
+                                 max_new_tokens=64)
 
         logits = torch.cat([outputs.scores[i][:, None, :] \
                 for i in range(len(outputs.scores))], dim=1)
@@ -58,7 +58,8 @@ def generate_vocab_vector(batch, model, minimum=0, device='cpu', max_length=256,
 
     relu = nn.ReLU(inplace=False)
     attention_mask = (decoded_token_ids != processor.tokenizer.pad_token_id).long()
-    doc_reps, _ = torch.max(torch.log(1 + relu(logits)) * attention_mask.unsqueeze(-1), dim=1)
+    # doc_reps, _ = torch.max(torch.log(1 + relu(logits)) * attention_mask.unsqueeze(-1), dim=1)
+    doc_reps = torch.sum(torch.log(1 + relu(logits)) * attention_mask.unsqueeze(-1), dim=1)
 
     ## it can be retrived from pooled logits
     bow_weights = batch_map_word_values(doc_reps,          
@@ -180,7 +181,7 @@ if __name__ == '__main__':
 
         fout.write(json.dumps({
             "id": doc_id, 
-            "contents": title + " [SEP] " + description,
+            "contents": title + " | " + description,
             "vector": vectors[i]
         }, ensure_ascii=False)+'\n')
 

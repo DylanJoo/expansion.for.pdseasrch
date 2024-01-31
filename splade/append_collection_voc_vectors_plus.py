@@ -8,7 +8,7 @@ from collections import defaultdict
 from datasets import Dataset
 from utils import batch_iterator
 from utils import batch_transform_token_ids, batch_map_word_values
-
+import string
 
 def norm(text):
     return text.translate(str.maketrans('', '', string.punctuation))

@@ -7,7 +7,7 @@ from tqdm import tqdm
 import json
 import argparse
 from pyserini.search.lucene import LuceneImpactSearcher
-from encode import BlipForQueryEncoder
+from encode import SpladeQueryEncoder, SpladeQueryLexicalEncoder
 
 def load_query(path):
     data = collections.defaultdict(str)
@@ -38,15 +38,15 @@ def search(args):
                 gamma_word=1.5
         )
     else:
-        # query_encoder = SpladeQueryEncoder(
-        #         args.encoder, device=args.device
-        # )
-        query_encoder = BlipForQueryEncoder.from_pretrained(
-                args.encoder, 
-                processor_name=args.processor, 
-                pooling="max"
+        query_encoder = SpladeQueryEncoder(
+                args.encoder, device=args.device
         )
-    query_encoder.eval()
+        # query_encoder = BlipForQueryEncoder.from_pretrained(
+        #         args.encoder, 
+        #         processor_name=args.processor, 
+        #         pooling="max"
+        # )
+    query_encoder.model.eval()
     searcher = LuceneImpactSearcher(args.index, query_encoder, args.min_idf)
 
     # for example

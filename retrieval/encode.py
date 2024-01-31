@@ -75,7 +75,7 @@ class SpladeQueryLexicalEncoder(SpladeQueryEncoder):
         for aggregated_logits in batch_aggregated_logits:
             col = np.nonzero(aggregated_logits)[0]
             weights = aggregated_logits[col]
-            d = {self.reverse_voc[k]: float(v) for k, v in zip(list(col), list(weights))}
+            d = {self.reverse_voc[k]: float(v)*self.gamma_token for k, v in zip(list(col), list(weights))}
             to_return.append(d)
         return to_return
 

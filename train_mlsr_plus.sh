@@ -23,7 +23,7 @@ python3 multimodal2text/BLIP/train_mlsr.py \
     --remove_unused_columns false \
     --report_to wandb \
     --text_generation true \
-    --template_src "{0} [SEP] {1}"\
+    --template_src "{0} {1}"\
     --template_tgt "{0}" \
     --pooling max \
     --run_name ft-mlsr++

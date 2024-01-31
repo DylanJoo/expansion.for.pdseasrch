@@ -34,13 +34,13 @@ def search(args):
                 args.encoder, 
                 device=args.device, 
                 mask_appeared_tokens=False if args.include_both else True,
-                gamma_token=1,
-                gamma_word=1.5
+                gamma_token=0.5,
+                gamma_word=1
         )
     else:
         query_encoder = SpladeQueryEncoder(args.encoder, device=args.device)
 
-    query_encoder.eval()
+    query_encoder.model.eval()
     searcher = LuceneImpactSearcher(args.index, query_encoder, args.min_idf)
 
     # for example

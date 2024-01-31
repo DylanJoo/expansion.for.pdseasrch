@@ -6,6 +6,10 @@ from dataclasses import dataclass, field
 from typing import Optional, Union, List, Dict, Tuple, Any
 from transformers.processing_utils import ProcessorMixin
 from PIL import Image
+import string
+
+def norm(text):
+    return text.translate(str.maketrans('', '', string.punctuation))
 
 @dataclass
 class Product2Query:
@@ -49,7 +53,7 @@ class Product2Query:
         )
         inputs['input_ids'][:, 0] = self.processor.tokenizer.enc_token_id
 
-        labels = [self.template_tgt.format(b['query']) for b in features]
+        labels = [self.template_tgt.format(norm(b['query'])) for b in features]
         targets = self.processor(
                 text=labels,
                 max_length=self.max_tgt_length,
@@ -103,7 +107,7 @@ class Product2Title:
         )
         inputs['input_ids'][:, 0] = self.processor.tokenizer.enc_token_id
 
-        labels = [self.template_tgt.format(b['title']) for b in features]
+        labels = [self.template_tgt.format(norm(b['title'])) for b in features]
         targets = self.processor(
                 text=labels,
                 max_length=self.max_tgt_length,

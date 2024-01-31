@@ -1,12 +1,16 @@
 import torch
 from transformers import AutoModelForMaskedLM, AutoTokenizer
 import numpy as np
-from pyserini.encode import SpladeQueryEncoder
+from pyserini.encode import SpladeQueryEncoder as temp_encoder
 from mlsr_utils import *
 import string
 
 def norm(text):
     return text.translate(str.maketrans('', '', string.punctuation))
+
+class SpladeQueryEncoder(temp_encoder):
+    def encode(self, text, **kwargs):
+        return super().encode(norm(text), **kwargs)
 
 class MSpladeQueryLexicalEncoder(SpladeQueryEncoder):
     def __init__(
@@ -19,17 +23,16 @@ class MSpladeQueryLexicalEncoder(SpladeQueryEncoder):
         gamma_token=1
     ):
         super().__init__(model_name_or_path, tokenizer_name, device)
-        self.device = device
-        self.model = AutoModelForMaskedLM.from_pretrained(model_name_or_path)
-        self.model.to(self.device)
-        self.tokenizer = AutoTokenizer.from_pretrained(tokenizer_name or model_name_or_path)
-        self.reverse_voc = {v: k for k, v in self.tokenizer.vocab.items()}
-        self.weight_range = 5
-        self.quant_range = 256
+        self.gamma_word = gamma_word
+        self.gamma_token = gamma_token
+        self.mask_appeared_tokens = mask_appeared_tokens
 
     def encode(self, text, max_length=256, **kwargs):
-        inputs = self.tokenizer([text], max_length=max_length, padding='longest',
-                                truncation=True, add_special_tokens=True,
+        inputs = self.tokenizer([norm(text)], 
+                                max_length=max_length, 
+                                padding='longest',
+                                truncation=True, 
+                                add_special_tokens=True,
                                 return_tensors='pt').to(self.device)
         input_ids = inputs['input_ids']
         input_attention = inputs['attention_mask']
@@ -38,11 +41,11 @@ class MSpladeQueryLexicalEncoder(SpladeQueryEncoder):
         batch_aggregated_logits, _ = torch.max(torch.log(1 + torch.relu(batch_logits))
                                                * input_attention.unsqueeze(-1), dim=1)
         batch_aggregated_logits = batch_aggregated_logits.cpu().detach()
+        input_ids = input_ids.cpu()
 
         ## filter the tokens that can be aggregated into words
         word_mask = selfinputs['input_ids'])
         batch_aggregated_logits = batch_aggregated_logits * word_mask
-
 
         ## the token-level vectors
         weights = self._output_to_weight_dicts(batch_aggregated_logits)

@@ -47,6 +47,20 @@ def splade_max(logits, attention_mask=None, labels_=None):
         values = torch.log(1 + relu(logits))
     return values    
 
+def splade_sum(logits, attention_mask=None, labels_=None):
+    relu = nn.ReLU(inplace=False)
+
+    if labels_ is not None:
+        mask = torch.ones(logits.size(0), 1, logits.size(-1)).to(logits.device)
+        mask.scatter_(-1, labels_.unsqueeze(1), 0)
+        logits = logits * mask
+
+    if attention_mask is not None: # [NOTE] masked element in sequence 
+        values = torch.sum(torch.log(1 + relu(logits)) * attention_mask.unsqueeze(-1), dim=1)
+    else:
+        values = torch.log(1 + relu(logits))
+    return values    
+
 class BlipForQuestionAnswering(BlipForQuestionAnswering_hf):
 
     def __init__(self, config, query_encoder, pooling):
@@ -57,13 +71,17 @@ class BlipForQuestionAnswering(BlipForQuestionAnswering_hf):
         if pooling == 'mean':
             print('use mean pooling')
             self.pooling = splade_mean
+        if pooling == 'mean':
+            print('use mean pooling')
+            self.pooling = splade_mean
 
         # naver/splade-cocondenser-ensembledistil
         self.query_encoder = AutoModelForMaskedLM.from_pretrained(query_encoder)
         self.query_encoder.eval()
+        self.q_pooling = splade_max
         # regularization
         self.lambda_q = 0.01 * 0 # since we use the freezed q decoder
-        self.lambda_d = 0.001
+        self.lambda_d = 0.0001
         self.ignored_token_ids = []
 
     def post_init(self):
@@ -143,7 +161,7 @@ class BlipForQuestionAnswering(BlipForQuestionAnswering_hf):
                 attention_mask=decoder_attention_mask
         ).logits
         ### [NOTE] add labels for remove the derieved tokens
-        query_result = self.pooling(
+        query_result = self.q_pooling(
                 query_logits, decoder_attention_mask
         )
 
@@ -195,21 +213,21 @@ class BlipForQuestionAnswering(BlipForQuestionAnswering_hf):
         # loss for regularization
         L1Loss = FLOPS()
         loss_reg_q = L1Loss(query_result) * self.lambda_q
-        loss_reg_d = (L1Loss(product_result_1) + L1Loss(product_result_0)) * self.lambda_d
+        loss_reg_d = (L1Loss(product_result_1) + L1Loss(product_result_0)) * self.lambda_d 
+        anti_zero = 1/(torch.sum(query_result)**2) + 1/(torch.sum(product_result_0)**2) + 1/(torch.sum(product_result_1)**2)
 
         return BlipTextVisionModelOutput(
                 logits=product_logits_1,
-                loss= loss_mtlm + (loss_0+loss_1+loss_pair) + (loss_reg_q+loss_reg_d),
-                losses={
-                    'splade_loss_(q, dt)': loss_0, 
-                    'splade_loss_(q, dm)': loss_1, 
-                    'splade_loss_(q-dt, q-dm)': loss_pair,
-                    'generation_0': product_outputs_0.loss, 
-                    'generation_1': product_outputs_1.loss,
-                    'reg_loss_d': loss_reg_d/2,
-                },
+                loss= loss_mtlm + (loss_0+loss_1+loss_pair) + (loss_reg_q+loss_reg_d) + anti_zero,
+                losses={'splade_loss_(q, dt)': loss_0, 
+                        'splade_loss_(q, dm)': loss_1, 
+                        'splade_loss_(q-dt, q-dm)': loss_pair,
+                        'generation_0': product_outputs_0.loss, 
+                        'generation_1': product_outputs_1.loss,
+                        'reg_loss_d': loss_reg_d,
+                        'anti_zero': anti_zero },
                 query_logits=query_result,
-                document_logits=self.pooling(
-                    product_logits_1, decoder_attention_mask, labels_inputs
-                )[:, :-2],
+                document_logits=self.pooling(product_logits_1, 
+                                             decoder_attention_mask, 
+                                             labels_inputs)[:, :-2],
         )

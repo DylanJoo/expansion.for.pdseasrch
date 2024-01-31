@@ -1,6 +1,7 @@
 export CUDA_VISIBLE_DEVICES=1
 VQA=Salesforce/blip-vqa-base
 
+# without generation
 python3 multimodal2text/BLIP/pretrain_mlsr.py \
     --model_name_or_path $VQA \
     --config_name $VQA \
@@ -24,8 +25,8 @@ python3 multimodal2text/BLIP/pretrain_mlsr.py \
     --text_generation true \
     --image_dropout 0.1 \
     --text_dropout 0.1 \
-    --title_mask_ratio 0.25 \
-    --template_src "{0} [SEP] {1}"\
+    --title_mask_ratio 0.5 \
+    --template_src "{0} {1}"\
     --template_tgt "{0}" \
     --pooling max \
     --run_name prt-mlsr++
