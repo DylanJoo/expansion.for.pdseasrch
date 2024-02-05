@@ -37,6 +37,8 @@ class TrainArgs(Seq2SeqTrainingArguments):
     predict_with_generate: bool = field(default=True)
     # include generation
     text_generation: bool = field(default=False)
+    # include retrieval
+    text_retrieval: bool = field(default=False)
     # freeze
     freeze_text_decoder: bool = field(default=False)
     freeze_vision_encoder: bool = field(default=False)

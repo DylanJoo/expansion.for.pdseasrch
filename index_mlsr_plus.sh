@@ -9,10 +9,10 @@ MODEL=models/blip-base-$TYPE-mlsr-plus/checkpoint-${CKPT}
 OUTPUT_DIR=data/mlsr_corpus/plus/$TYPE-$CKPT
 
 # fine-tuned only
-# TYPE=ft
-# CKPT=20000
-# MODEL=models/blip-base-$TYPE-mlsr-plus/checkpoint-${CKPT}/
-# OUTPUT_DIR=data/mlsr_corpus/plus/$TYPE-$CKPT/
+TYPE=ft
+CKPT=20000
+MODEL=models/blip-base-$TYPE-mlsr-plus/checkpoint-${CKPT}/
+OUTPUT_DIR=data/mlsr_corpus/plus/$TYPE-$CKPT/
 
 # pretrained then fine-tuned
 
@@ -28,16 +28,16 @@ python multimodal2text/BLIP/append_collection_voc_vectors_plus.py \
     --max_length 512 \
     --device cuda \
     --mask_appeared_tokens \
-    --quantization_factor 100 
+    --quantization_factor 100
 
 # pyserini indexing with pretokenized impact vectors
-python -m pyserini.index.lucene \
-  --collection JsonVectorCollection \
-  --input $OUTPUT_DIR \
-  --index indexing/trec-pds-simplified-mlsr-plus-$TYPE \
-  --generator DefaultLuceneDocumentGenerator \
-  --threads 36 \
-  --impact --pretokenized
+# python -m pyserini.index.lucene \
+#   --collection JsonVectorCollection \
+#   --input $OUTPUT_DIR \
+#   --index indexing/trec-pds-simplified-mlsr-plus-$TYPE \
+#   --generator DefaultLuceneDocumentGenerator \
+#   --threads 36 \
+#   --impact --pretokenized
 
 ## the BOTH version
 mkdir -p ${OUTPUT_DIR/plus/both}
@@ -53,10 +53,10 @@ python multimodal2text/BLIP/append_collection_voc_vectors_plus.py \
     --quantization_factor 100
 
 # pyserini indexing with pretokenized impact vectors
-python -m pyserini.index.lucene \
-  --collection JsonVectorCollection \
-  --input ${OUTPUT_DIR/plus/both} \
-  --index indexing/trec-pds-simplified-mlsr-both-prt \
-  --generator DefaultLuceneDocumentGenerator \
-  --threads 36 \
-  --impact --pretokenized
+# python -m pyserini.index.lucene \
+#   --collection JsonVectorCollection \
+#   --input ${OUTPUT_DIR/plus/both} \
+#   --index indexing/trec-pds-simplified-mlsr-both-prt \
+#   --generator DefaultLuceneDocumentGenerator \
+#   --threads 36 \
+#   --impact --pretokenized

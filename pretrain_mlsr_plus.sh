@@ -28,5 +28,5 @@ python3 multimodal2text/BLIP/pretrain_mlsr.py \
     --title_mask_ratio 0.5 \
     --template_src "{0} {1}"\
     --template_tgt "{0}" \
-    --pooling max \
+    --pooling sum \
     --run_name prt-mlsr++

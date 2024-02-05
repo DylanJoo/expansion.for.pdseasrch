@@ -20,6 +20,7 @@ class Product2Query:
     max_tgt_length: int = 16
     image_dropout: float = 0.0
     text_dropout: float = 0.0
+    mask_decoder_inputs: bool = False
 
     def __call__(self, features: List[Dict[str, Any]]) -> Dict[str, Any]:
 
@@ -60,11 +61,14 @@ class Product2Query:
                 return_tensors='pt',
                 return_attention_mask=True,
                 truncation=True,
-                padding=True
+                padding=True,
         )
         inputs['labels'] = targets.input_ids
         inputs['labels'].masked_fill_(~targets.attention_mask.bool(), -100)   
         inputs['decoder_attention_mask'] = targets.attention_mask
+        if self.mask_decoder_inputs:
+            inputs['decoder_input_ids'] = torch.arange(-1, targets.input_ids.size(1)+2)[:targets.input_ids.size(1)].repeat((len(labels), 1))
+
         return inputs
 
 @dataclass
@@ -119,4 +123,58 @@ class Product2Title:
         inputs['labels'] = targets.input_ids
         inputs['labels'].masked_fill_(~targets.attention_mask.bool(), -100)   
         inputs['decoder_attention_mask'] = targets.attention_mask
+        return inputs
+
+@dataclass
+class ProductRetrieval:
+    processor: Union[ProcessorMixin] = None
+    template_src: str = "{0}"
+    template_tgt: str = "{0}"
+    max_src_length: int = 384
+    max_tgt_length: int = 16
+    image_dropout: float = 0.0
+    text_dropout: float = 0.0
+
+    def __call__(self, features: List[Dict[str, Any]]) -> Dict[str, Any]:
+
+        images = [Image.open(b['image']).convert('RGB').resize((384, 384)) for b in features]
+        texts = [self.template_src.format(b['title'], b['description']) \
+                for b in features]
+
+        # 0: text (drop images)
+        # 1: text+image (none)
+        # -1: image (drop texts)
+        drop_labels = random.choices([-1,0,1], k=len(features), 
+                weights=(self.text_dropout, self.image_dropout, 1-self.text_dropout-self.image_dropout))
+
+        # random image drop and text drop
+        if self.image_dropout > 0:
+            blank = Image.new('RGB', (384, 384), color=(255, 255, 255))
+            images = [img if lbl!=0 else blank for img, lbl in zip(images, drop_labels)]
+
+        if self.text_dropout > 0:
+            blank = self.template_src.format("", "")
+            texts = [txt if lbl!=-1 else blank for txt, lbl in zip(texts, drop_labels)] 
+
+        inputs = self.processor(
+                images=images, 
+                text=texts,
+                max_length=self.max_src_length,
+                return_tensors='pt',
+                return_attention_mask=True,
+                truncation=True,
+                padding=True
+        )
+
+        labels = [self.template_tgt.format(norm(b['query'])) for b in features]
+        targets = self.processor(
+                text=labels,
+                max_length=self.max_tgt_length,
+                return_tensors='pt',
+                return_attention_mask=True,
+                truncation=True,
+                padding=True
+        )
+        inputs['q_input_ids'] = targets.input_ids
+        inputs['q_attention_mask'] = targets.attention_mask
         return inputs

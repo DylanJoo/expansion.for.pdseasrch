@@ -2,7 +2,7 @@ import torch
 from transformers import AutoModelForMaskedLM, AutoTokenizer
 import numpy as np
 from pyserini.encode import SpladeQueryEncoder as temp_encoder
-from mlsr_utils import *
+from utils import *
 import string
 
 def norm(text):
