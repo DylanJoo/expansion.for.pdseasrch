@@ -2,49 +2,30 @@ import torch
 import numpy as np
 import collections
 
-def batch_transform_token_ids(tokenizer, batch_token_ids, return_attention_mask=False):
-    tokens_to_add = []
-    string_to_return = []
-
-    # token_ids --> a token list and a sring
-    for token_ids in batch_token_ids:
-        decoded_tokens = tokenizer.convert_ids_to_tokens(token_ids)
-        decoded_string = tokenizer.convert_tokens_to_string(decoded_tokens)
-        tokens_to_add += decoded_tokens
-        string_to_return.append(decoded_string)
-
-    # strings --> offset_mapping
-    tokenized = tokenizer(
-            string_to_return,
-            add_special_tokens=False, return_offsets_mapping=True,
-            padding=True, return_tensors='pt'
-    )
-
-    ## [IMPORTANT] this is very ad-hoc way to deal with destriptive process of encoding
-    if tokenized.input_ids.size(1) != batch_token_ids.size(1):
-        tokenizer.add_tokens(list(set(tokens_to_add)))
-        tokenized = tokenizer(
-                string_to_return,
-                add_special_tokens=False, return_offsets_mapping=True,
-                padding=True, return_tensors='pt'
-        )
-        mapping_to_return = tokenized.offset_mapping
-    else:
-        mapping_to_return = tokenized.offset_mapping
-
-    # check length
-    if return_attention_mask:
-        # mask = tokenized.attention_mask # derived from output token ids
-        mask = (batch_token_ids != tokenizer.pad_token_id).long()
-        return string_to_return, mapping_to_return, mask
-    else:
-        return string_to_return, mapping_to_return, None
+# def batch_transform_token_ids(tokenizer, token_ids, return_attention_mask=False):
+#     tokens_to_add = []
+#     string_to_return = []
+#
+#     # token_ids --> a token list and a sring
+#     string_to_return = tokenizer.batch_decode(token_ids, skip_special_tokens=True)
+#
+#     # strings --> offset_mapping
+#     tokenized = tokenizer(
+#             string_to_return,
+#             add_special_tokens=False, 
+#             return_offsets_mapping=True,
+#             padding=True, 
+#             return_tensors='pt'
+#     ).to(token_ids.device)
+#
+    return tokenized.offset_mapping
 
 def batch_map_word_values(logits, batch_token_ids, strings, offset_mapping, is_pooled=False):
 
     if is_pooled:
-        logits = logits.unsqueeze(1).repeat((1, batch_token_ids.size(-1), 1))
-    weights = logits.gather(2, batch_token_ids.unsqueeze(2)).squeeze(2).cpu().numpy()
+        weights = logits.gather(1, batch_token_ids).cpu().numpy()
+    else:
+        weights = logits.gather(2, batch_token_ids.unsqueeze(2)).squeeze(2).cpu().numpy()
 
     to_return = []
     for i, (offset, weight) in enumerate(zip(offset_mapping, weights)):
@@ -55,11 +36,7 @@ def batch_map_word_values(logits, batch_token_ids, strings, offset_mapping, is_p
         for j, (start_, end_) in enumerate(offset):
             # retrieve the maximum between tokens
             if end_ != 0:
-                try:
-                    w = weight[j]
-                except:
-                    w = weight.mean()
-                    print(f'use average {w} instead of unmatched weight')
+                w = weight[j]
 
                 if start_ == end:
                     prev = word_id_to_weights[words[start:end]]

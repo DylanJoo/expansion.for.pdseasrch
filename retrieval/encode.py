@@ -28,28 +28,30 @@ class SpladeQueryLexicalEncoder(SpladeQueryEncoder):
         self.mask_appeared_tokens = mask_appeared_tokens
 
     def encode(self, text, max_length=256, **kwargs):
-        inputs = self.tokenizer([norm(text)], 
-                                max_length=max_length, 
-                                padding='longest',
-                                truncation=True, 
+        text = norm(text)
+        inputs = self.tokenizer([text], 
                                 add_special_tokens=True,
+                                return_offsets_mapping=True
+                                max_length=max_length, 
+                                padding=True,
+                                truncation=True, 
                                 return_tensors='pt').to(self.device)
         input_ids = inputs['input_ids']
         input_attention = inputs['attention_mask']
-        batch_logits = self.model(input_ids)['logits']
+        offset_mapping = inputs.pop('offset_mapping')
 
-        batch_aggregated_logits, _ = torch.max(torch.log(1 + torch.relu(batch_logits))
-                                               * input_attention.unsqueeze(-1), dim=1)
+        batch_logits = self.model(input_ids)['logits']
+        batch_aggregated_logits = torch.max(
+                torch.log(1 + torch.relu(batch_logits)) * input_attention.unsqueeze(-1), 
+                dim=1
+        ).values
         batch_aggregated_logits = batch_aggregated_logits.cpu().detach()
         input_ids = input_ids.cpu()
+        offset_mapping = offset_mapping.cpu()
 
-        ## get the word-level weights
-        strings, offset_mapping, _ = batch_transform_token_ids(
-                self.tokenizer, input_ids,
-        )
         bow_weights = batch_map_word_values(batch_aggregated_logits,
                                             input_ids,
-                                            strings,
+                                            text,
                                             offset_mapping,
                                             is_pooled=True)
 
