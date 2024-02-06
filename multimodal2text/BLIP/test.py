@@ -1,26 +1,27 @@
 import torch
-
-from models_mlsr_retrieval import BlipForRetrieval
+from models_mlsr_wgen import BlipForQuestionAnswering
 import requests
 from PIL import Image
 from transformers import AutoProcessor
 
-model = BlipForRetrieval.from_pretrained(
-        "Salesforce/blip-itm-base-coco"
+model = BlipForQuestionAnswering.from_pretrained(
+        "/tmp2/jhju/expansion.for.pdseasrch/models/blip-base-ft-mlsr-plus/checkpoint-20000"
 )
-processor = AutoProcessor.from_pretrained(
-        "Salesforce/blip-itm-base-coco"
-)
+processor = AutoProcessor.from_pretrained("Salesforce/blip-vqa-base")
+
 url = "http://images.cocodataset.org/val2017/000000039769.jpg"
 image = Image.open(requests.get(url, stream=True).raw)
 text = "an image of a cat"
 
 inputs = processor(images=image, text=text, return_tensors="pt")
-query = "Is this a cat?"
-qinputs = processor.tokenizer(query, return_tensors="pt")
-outputs = model(**inputs, q_input_ids=qinputs.input_ids, q_attention_mask=qinputs.attention_mask)
+B, L = inputs['input_ids'].size(0), 10
+inputs['decoder_input_ids'] = torch.arange(-1, L+2)[:L].repeat((B, 1))
+inputs['decoder_input_ids'][:, 0] = model.decoder_start_token_id
 
-# values, _ = torch.max(torch.log(1 + relu(logits)) * attention_mask.unsqueeze(-1), dim=1)
-print(torch.topk(outputs['image_features'], k=5, dim=-1).indices)
-print(torch.topk(outputs['text_features'], k=5, dim=-1).indices)
-print(torch.topk(outputs['multimodal_features'], k=5, dim=-1).indices)
+outputs = model(**inputs)
+
+print(outputs.keys())
+print(torch.topk(outputs['document_feat'], k=5, dim=-1).indices)
+print(torch.topk(outputs['product_feat'], k=5, dim=-1).indices)
+print(processor.tokenizer.batch_decode(torch.topk(outputs['document_feat'], k=5, dim=-1).indices))
+print(processor.tokenizer.batch_decode(torch.topk(outputs['product_feat'], k=5, dim=-1).indices))

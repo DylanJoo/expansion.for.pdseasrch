@@ -8,7 +8,6 @@ from transformers import HfArgumentParser
 from arguments import ModelArgs, DataArgs, TrainArgs
 from datasets import load_dataset
 from tools import init_tokenizer
-import datacollator 
 import string
 def norm(text):
     return text.translate(str.maketrans('', '', string.punctuation))
@@ -29,15 +28,11 @@ def main():
     processor = init_tokenizer(processor)
 
     # Config: modeling
-    if training_args.text_generation:
-        from models_mlsr_wgen import BlipForQuestionAnswering
-        model = BlipForQuestionAnswering.from_pretrained(
-                pretrained_model_name_or_path=model_args.model_name_or_path,
-                lambda_q=0, lambda_d=0.0001, 
-        )
-    if training_args.text_retrieval:
-        from models_mlsr_retrieval import BlipForRetrieval
-        model = BlipForRetrieval.from_pretrained(model_args.model_name_or_path)
+    from models_mlsr_wgen import BlipForQuestionAnswering
+    model = BlipForQuestionAnswering.from_pretrained(
+            pretrained_model_name_or_path=model_args.model_name_or_path,
+            lambda_d=0.01, 
+    )
 
     # Data: dataset
     dataset = load_dataset('json', data_files=data_args.train_file)['train']
@@ -46,31 +41,19 @@ def main():
     print(dataset)
 
     # Model: freezing
-    if training_args.text_retrieval:
-        data_collator = datacollator.ProductRetrieval(
-                processor=processor,
-                template_src=training_args.template_src,
-                template_tgt=training_args.template_tgt,
-                max_src_length=data_args.max_src_length,
-                max_tgt_length=data_args.max_tgt_length,
-                text_dropout=training_args.text_dropout,
-                image_dropout=training_args.image_dropout
-        )
-        from trainer_retrieval import MyTrainer
+    import datacollator 
+    data_collator = datacollator.Product2Query(
+            processor=processor,
+            template_src=training_args.template_src,
+            template_tgt=training_args.template_tgt,
+            max_src_length=data_args.max_src_length,
+            max_tgt_length=data_args.max_tgt_length,
+            text_dropout=training_args.text_dropout,
+            image_dropout=training_args.image_dropout,
+            mask_decoder_inputs=True
+    )
 
-    else:
-        data_collator = datacollator.Product2Query(
-                processor=processor,
-                template_src=training_args.template_src,
-                template_tgt=training_args.template_tgt,
-                max_src_length=data_args.max_src_length,
-                max_tgt_length=data_args.max_tgt_length,
-                text_dropout=training_args.text_dropout,
-                image_dropout=training_args.image_dropout,
-                mask_decoder_inputs=True
-        )
-        from trainer import MyTrainer
-
+    from trainer import MyTrainer
     trainer = MyTrainer(
             model=model, 
             args=training_args,

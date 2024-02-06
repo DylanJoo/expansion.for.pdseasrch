@@ -4,7 +4,6 @@ import argparse
 import torch
 from collections import defaultdict
 from datasets import Dataset
-from transformers import BlipForQuestionAnswering
 from transformers import AutoProcessor
 from tools import batch_iterator, load_images
 from mlsr_utils import batch_transform_token_ids, batch_map_word_values
@@ -35,31 +34,39 @@ def generate_vocab_vector(batch, model, minimum=0, device='cpu', max_length=256,
     inputs = processor(images=images, 
                        text=texts,
                        return_tensors='pt',
-                       padding='max_length',
+                       padding=True,
                        truncation=True,
                        max_length=max_length,
-                       return_attention_mask=True).to(device)
+                       return_attention_mask=True)
     inputs['input_ids'][:, 0] = processor.tokenizer.enc_token_id
+    B, L = inputs['input_ids'].size(0), 16
+    inputs['decoder_input_ids'] = torch.arange(-1, L+2)[:L].repeat((B, 1))
+    inputs['decoder_input_ids'][:, 0] = model.decoder_start_token_id
+    inputs = inputs.to(device)
 
     with torch.no_grad():
-        outputs = model.generate(**inputs, 
-                                 return_dict_in_generate=True, 
-                                 output_scores=True, 
-                                 max_new_tokens=64)
-
-        logits = torch.cat([outputs.scores[i][:, None, :] \
-                for i in range(len(outputs.scores))], dim=1)
-        decoded_token_ids = outputs.sequences[:, 1:] 
+        # generation
+        # outputs = model.generate(**inputs, 
+        #                          return_dict_in_generate=True, 
+        #                          output_scores=True, 
+        #                          max_new_tokens=64)
+        # logits = torch.cat([outputs.scores[i][:, None, :] \
+        #         for i in range(len(outputs.scores))], dim=1)
+        # decoded_token_ids = outputs.sequences[:, 1:] 
+        # doc_reps, _ = torch.max(torch.log(1 + relu(logits)) * attention_mask.unsqueeze(-1), dim=1)
+        # doc_reps = torch.sum(torch.log(1 + relu(logits)) * attention_mask.unsqueeze(-1), dim=1)
     
+        # inference
+        outputs = model(**inputs)
+        decoded_token_ids = torch.max(outputs.product_logit, dim=-1).indices
+        doc_reps = outputs.product_feat
+
     ## get tokens, strings, offset_mapping
     strings, encoded_token_ids, offset_mapping = \
             batch_transform_token_ids(processor.tokenizer,
                                       decoded_token_ids)
 
     relu = nn.ReLU(inplace=False)
-    attention_mask = (decoded_token_ids != processor.tokenizer.pad_token_id).long()
-    # doc_reps, _ = torch.max(torch.log(1 + relu(logits)) * attention_mask.unsqueeze(-1), dim=1)
-    doc_reps = torch.sum(torch.log(1 + relu(logits)) * attention_mask.unsqueeze(-1), dim=1)
 
     ## it can be retrived from pooled logits
     bow_weights = batch_map_word_values(doc_reps,          
@@ -71,7 +78,6 @@ def generate_vocab_vector(batch, model, minimum=0, device='cpu', max_length=256,
     if mask_appeared_tokens:
         mask = torch.ones(doc_reps.size(0), doc_reps.size(-1), device=device)
         mask.scatter_(-1, decoded_token_ids, 0)
-        mask.scatter_(-1, encoded_token_ids, 0)
         doc_reps = (doc_reps * mask).cpu()
 
     ### prevent some of the logits being replace by word-level, and thus no weight at all
@@ -118,6 +124,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     # load model and processor
+    from models_mlsr_wgen import BlipForQuestionAnswering
     model = BlipForQuestionAnswering.from_pretrained(args.model_name_or_dir)
     model.to(args.device)
     model.eval()

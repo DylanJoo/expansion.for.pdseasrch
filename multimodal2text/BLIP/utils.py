@@ -4,21 +4,20 @@ import numpy as np
 import collections
 import torch.nn.functional as F
 
-def batch_transform_token_ids(tokenizer, batch_token_ids):
+def batch_transform_token_ids(tokenizer, token_ids):
     string_to_return = []
 
     # token_ids --> a token list and a sring
-    string_to_return = tokenizer.batch_decode(
-            batch_token_ids,
-            skip_special_tokens=True
-    )
+    string_to_return = tokenizer.batch_decode(token_ids, skip_special_tokens=True)
 
     # strings --> offset_mapping
     tokenized = tokenizer(
             string_to_return,
-            add_special_tokens=False, return_offsets_mapping=True,
-            padding=True, return_tensors='pt', 
-    ).to(batch_token_ids.device)
+            add_special_tokens=False, 
+            return_offsets_mapping=True,
+            padding=True, 
+            return_tensors='pt', 
+    ).to(token_ids.device)
 
     return string_to_return, tokenized.input_ids, tokenized.offset_mapping
 
@@ -57,4 +56,36 @@ def batch_map_word_values(logits, batch_token_ids, strings, offset_mapping, is_p
         word_id_to_weights.pop('[PAD]', None) # remove spec token
         to_return.append(word_id_to_weights)
     return to_return
+
+class FLOPS:
+    def __call__(self, batch_rep):
+        return torch.sum(torch.mean(torch.abs(batch_rep), dim=0) ** 2)
+
+def splade_max(logits, attention_mask=None, labels_=None):
+    relu = nn.ReLU(inplace=False)
+
+    if labels_ is not None:
+        mask = torch.ones(logits.size(0), 1, logits.size(-1)).to(logits.device)
+        mask.scatter_(-1, labels_.unsqueeze(1), 0)
+        logits = logits * mask
+
+    if attention_mask is not None: # [NOTE] masked element in sequence 
+        values, _ = torch.max(torch.log(1 + relu(logits)) * attention_mask.unsqueeze(-1), dim=1)
+    else:
+        values, _ = torch.max(torch.log(1 + relu(logits)), dim=1)
+    return values    
+
+def splade_sum(logits, attention_mask=None, labels_=None):
+    relu = nn.ReLU(inplace=False)
+
+    if labels_ is not None:
+        mask = torch.ones(logits.size(0), 1, logits.size(-1)).to(logits.device)
+        mask.scatter_(-1, labels_.unsqueeze(1), 0)
+        logits = logits * mask
+
+    if attention_mask is not None: # [NOTE] masked element in sequence 
+        values = torch.sum(torch.log(1 + relu(logits)) * attention_mask.unsqueeze(-1), dim=1)
+    else:
+        values = torch.log(1 + relu(logits))
+    return values    
 

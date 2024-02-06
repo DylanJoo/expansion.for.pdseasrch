@@ -4,6 +4,7 @@ from typing import Any, Optional, Tuple, Union
 import torch.nn as nn
 from transformers import BlipForQuestionAnswering as BlipForQuestionAnswering_hf
 from transformers.utils import ModelOutput
+from utils import FLOP, splade_max, splade_sum
 
 @dataclass
 class BlipTextVisionModelOutput(ModelOutput):
@@ -11,48 +12,15 @@ class BlipTextVisionModelOutput(ModelOutput):
     loss: Optional[torch.FloatTensor] = None
     document_feat: Optional[torch.FloatTensor] = None
     product_feat: Optional[torch.FloatTensor] = None
+    document_logit: Optional[torch.FloatTensor] = None
+    product_logit: Optional[torch.FloatTensor] = None
 
-class FLOPS:
-    def __call__(self, batch_rep):
-        return torch.sum(torch.mean(torch.abs(batch_rep), dim=0) ** 2)
+class BlipForGenerativeEncoder(BlipForQuestionAnswering_hf):
 
-def splade_max(logits, attention_mask=None, labels_=None):
-    relu = nn.ReLU(inplace=False)
-
-    if labels_ is not None:
-        mask = torch.ones(logits.size(0), 1, logits.size(-1)).to(logits.device)
-        mask.scatter_(-1, labels_.unsqueeze(1), 0)
-        logits = logits * mask
-
-    if attention_mask is not None: # [NOTE] masked element in sequence 
-        values, _ = torch.max(torch.log(1 + relu(logits)) * attention_mask.unsqueeze(-1), dim=1)
-    else:
-        values, _ = torch.max(torch.log(1 + relu(logits)), dim=1)
-    return values    
-
-def splade_sum(logits, attention_mask=None, labels_=None):
-    relu = nn.ReLU(inplace=False)
-
-    if labels_ is not None:
-        mask = torch.ones(logits.size(0), 1, logits.size(-1)).to(logits.device)
-        mask.scatter_(-1, labels_.unsqueeze(1), 0)
-        logits = logits * mask
-
-    if attention_mask is not None: # [NOTE] masked element in sequence 
-        values = torch.sum(torch.log(1 + relu(logits)) * attention_mask.unsqueeze(-1), dim=1)
-    else:
-        values = torch.log(1 + relu(logits))
-    return values    
-
-class BlipForQuestionAnswering(BlipForQuestionAnswering_hf):
-
-    def __init__(self, config, lambda_q=0, lambda_d=0.0001):
+    def __init__(self, config, lambda_d=0.0001):
         super().__init__(config)
-        self.pooling = splade_max
-        self.pooling_q = splade_max
-        self.lambda_q = lambda_q
+        self.pooling_d = splade_max
         self.lambda_d = lambda_d
-        self.ignored_token_ids = []
 
     def post_init(self):
         # self.decoder_start_token_id = 30522 # this has been initialized
@@ -100,7 +68,7 @@ class BlipForQuestionAnswering(BlipForQuestionAnswering_hf):
         image_embeds = vision_outputs[0]
         image_attention_mask = torch.ones(image_embeds.size()[:-1], dtype=torch.long)
 
-        ## Text product encoding
+        ## Text encoding
         product_embeds_0 = self.text_encoder(
             input_ids=input_ids,
             attention_mask=attention_mask,
@@ -109,7 +77,7 @@ class BlipForQuestionAnswering(BlipForQuestionAnswering_hf):
             return_dict=return_dict,
         )[0]
 
-        ## Multimodal image-text encoding
+        ## Text-image encoding
         product_embeds_1 = self.text_encoder(
             input_ids=input_ids,
             attention_mask=attention_mask,
@@ -120,13 +88,14 @@ class BlipForQuestionAnswering(BlipForQuestionAnswering_hf):
 
         if labels is not None and decoder_input_ids is None:
             # labels are already shifted right, see: https://github.com/huggingface/transformers/pull/23153
+            # In the text decoder, the labels will be truncated by [:, 1:]
+            #                      the decoder_input_ids will be the same 
             labels_inputs = labels.masked_fill(labels == -100, self.text_decoder.config.pad_token_id)
             decoder_input_ids = labels_inputs.clone()
 
-        decoder_input_ids[:, 0] = self.decoder_start_token_id
-
         ### [DEC] as decoding start token
-        #### decode from text-only encoding
+        #### Text-only decoding
+        decoder_input_ids[:, 0] = self.decoder_start_token_id
         product_outputs_0 = self.text_decoder(
             input_ids=decoder_input_ids,
             attention_mask=decoder_attention_mask,
@@ -137,11 +106,9 @@ class BlipForQuestionAnswering(BlipForQuestionAnswering_hf):
             reduction="mean",
         )
         product_logits_0 = product_outputs_0.logits
-        product_result_0 = self.pooling(
-                product_logits_0, decoder_attention_mask # since query has mask by labels, here is fine for this.
-        )[:, :-2] 
+        product_result_0 = self.pooling_d(product_logits_0, decoder_attention_mask)[:, :-2] 
 
-        #### decode from image-text encoding
+        #### Image-text decoding
         product_outputs_1 = self.text_decoder(
             input_ids=decoder_input_ids,
             attention_mask=decoder_attention_mask,
@@ -152,23 +119,22 @@ class BlipForQuestionAnswering(BlipForQuestionAnswering_hf):
             reduction="mean",
         )
         product_logits_1 = product_outputs_1.logits
-        product_result_1 = self.pooling(
-                product_logits_1, decoder_attention_mask 
-        )[:, :-2]
+        product_result_1 = self.pooling_d(product_logits_1, decoder_attention_mask)[:, :-2]
+
+        loss = 0
 
         # loss of generation
-        if (product_outputs_0 is not None) and (product_outputs_1 is not None):
-            loss_mtlm = (product_outputs_0.loss + product_outputs_1.loss) / 2 * 0
-        else:
-            loss_mtlm = 0
+        if (product_outputs_0.loss is not None) and (product_outputs_1.loss is not None):
+            loss += (product_outputs_0.loss + product_outputs_1.loss) / 2 * 0
 
         # loss for regularization
-        L1Loss = FLOPS()
-        loss_reg = (L1Loss(product_result_1) + L1Loss(product_result_0)) * self.lambda_d
-        anti_zero = 1/(torch.sum(product_result_0)**2) + 1/(torch.sum(product_result_1)**2)
+        RegLoss = FLOPS()
+        loss += (RegLoss(product_result_1) + RegLoss(product_result_0)) * self.lambda_d
 
         return BlipTextVisionModelOutput(
-                loss = loss_mtlm + loss_reg,
+                loss=loss,
                 document_feat=product_result_0,
-                product_feat=product_result_1
+                product_feat=product_result_1,
+                document_logit=product_logits_0,
+                product_logit=product_logits_1 
         )
