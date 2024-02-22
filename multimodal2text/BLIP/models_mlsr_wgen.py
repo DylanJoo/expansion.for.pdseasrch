@@ -4,7 +4,7 @@ from typing import Any, Optional, Tuple, Union
 import torch.nn as nn
 from transformers import BlipForQuestionAnswering as BlipForQuestionAnswering_hf
 from transformers.utils import ModelOutput
-from utils import FLOP, splade_max, splade_sum
+from utils import FLOPS, splade_max, splade_sum
 
 @dataclass
 class BlipTextVisionModelOutput(ModelOutput):
@@ -105,8 +105,8 @@ class BlipForGenerativeEncoder(BlipForQuestionAnswering_hf):
             return_dict=return_dict,
             reduction="mean",
         )
-        product_logits_0 = product_outputs_0.logits
-        product_result_0 = self.pooling_d(product_logits_0, decoder_attention_mask)[:, :-2] 
+        product_logits_0 = product_outputs_0.logits[:, :, :-2]
+        product_result_0 = self.pooling_d(product_logits_0, decoder_attention_mask)
 
         #### Image-text decoding
         product_outputs_1 = self.text_decoder(
@@ -118,14 +118,13 @@ class BlipForGenerativeEncoder(BlipForQuestionAnswering_hf):
             return_dict=return_dict,
             reduction="mean",
         )
-        product_logits_1 = product_outputs_1.logits
-        product_result_1 = self.pooling_d(product_logits_1, decoder_attention_mask)[:, :-2]
+        product_logits_1 = product_outputs_1.logits[:, :, :-2]
+        product_result_1 = self.pooling_d(product_logits_1, decoder_attention_mask)
 
         loss = 0
-
         # loss of generation
         if (product_outputs_0.loss is not None) and (product_outputs_1.loss is not None):
-            loss += (product_outputs_0.loss + product_outputs_1.loss) / 2 * 0
+            loss += (product_outputs_0.loss + product_outputs_1.loss) / 2
 
         # loss for regularization
         RegLoss = FLOPS()

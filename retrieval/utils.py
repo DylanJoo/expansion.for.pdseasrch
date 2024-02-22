@@ -18,7 +18,7 @@ import collections
 #             return_tensors='pt'
 #     ).to(token_ids.device)
 #
-    return tokenized.offset_mapping
+#    return tokenized.offset_mapping
 
 def batch_map_word_values(logits, batch_token_ids, strings, offset_mapping, is_pooled=False):
 

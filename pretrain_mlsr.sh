@@ -1,4 +1,4 @@
-export CUDA_VISIBLE_DEVICES=1
+export CUDA_VISIBLE_DEVICES=0
 VQA=Salesforce/blip-vqa-base
 
 # without generation
@@ -9,7 +9,7 @@ python3 multimodal2text/BLIP/pretrain_mlsr.py \
     --train_file data/trec-pds.pretrain.m2t.product2query.jsonl \
     --max_src_length 128 \
     --max_tgt_length 16 \
-    --output_dir models/blip-base-prt-mlsr-plus/ \
+    --output_dir models/blip-base-prt-mlsr-dummy \
     --overwrite_output_dir true \
     --do_train \
     --save_strategy steps \
@@ -23,10 +23,11 @@ python3 multimodal2text/BLIP/pretrain_mlsr.py \
     --remove_unused_columns false \
     --report_to wandb \
     --text_generation true \
-    --image_dropout 0.1 \
+    --image_dropout 0.1  \
     --text_dropout 0.1 \
     --title_mask_ratio 0.5 \
-    --template_src "{0} {1}"\
+    --template_src "{0} {1} "\
     --template_tgt "{0}" \
-    --pooling sum \
-    --run_name prt-mlsr++
+    --pooling max \
+    --mask_decoder_inputs true \
+    --run_name prt-mlsr-dummy

@@ -21,6 +21,7 @@ class DataArgs:
     max_src_length: int = field(default=256)
     max_tgt_length: int = field(default=16)
     title_mask_ratio: float = field(default=0.0)
+    mask_decoder_inputs: bool = field(default=False)
 
 @dataclass
 class TrainArgs(Seq2SeqTrainingArguments):

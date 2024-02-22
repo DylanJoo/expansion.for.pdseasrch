@@ -52,7 +52,7 @@ class Product2Query:
         )
         inputs['input_ids'][:, 0] = self.processor.tokenizer.enc_token_id
 
-        labels = [self.template_tgt.format(norm(b['query'])) for b in features]
+        labels = [self.template_tgt.format(b['query']) for b in features]
         targets = self.processor(
                 text=labels,
                 max_length=self.max_tgt_length,

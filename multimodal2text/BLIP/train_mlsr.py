@@ -28,19 +28,21 @@ def main():
     processor = init_tokenizer(processor)
 
     # Config: modeling
-    from models_mlsr_wgen import BlipForQuestionAnswering
-    model = BlipForQuestionAnswering.from_pretrained(
+    from models_mlsr_wgen import BlipForGenerativeEncoder
+    model = BlipForGenerativeEncoder.from_pretrained(
             pretrained_model_name_or_path=model_args.model_name_or_path,
-            lambda_d=0.01, 
+            lambda_d=0.00,
     )
 
     # Data: dataset
     dataset = load_dataset('json', data_files=data_args.train_file)['train']
     dataset = dataset.train_test_split(test_size=3000, seed=777)
-    dataset = dataset.map(lambda example: {"query": norm(example["query"])})
+    dataset = dataset.map(
+            lambda x: {"query": norm(x["query"])}
+    )
     print(dataset)
 
-    # Model: freezing
+    # Data: collator
     import datacollator 
     data_collator = datacollator.Product2Query(
             processor=processor,
@@ -50,7 +52,7 @@ def main():
             max_tgt_length=data_args.max_tgt_length,
             text_dropout=training_args.text_dropout,
             image_dropout=training_args.image_dropout,
-            mask_decoder_inputs=True
+            mask_decoder_inputs=data_args.mask_decoder_inputs
     )
 
     from trainer import MyTrainer

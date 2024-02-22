@@ -2,6 +2,7 @@ import copy
 import torch
 import numpy as np
 import collections
+import torch.nn as nn
 import torch.nn.functional as F
 
 def batch_transform_token_ids(tokenizer, token_ids):
