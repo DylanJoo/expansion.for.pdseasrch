@@ -1,4 +1,4 @@
-export CUDA_VISIBLE_DEVICES=0
+export CUDA_VISIBLE_DEVICES=1,2
 VQA=Salesforce/blip-vqa-base
 # PRETRAINED=models/blip-base-prt-mlsr-max/checkpoint-25000
 

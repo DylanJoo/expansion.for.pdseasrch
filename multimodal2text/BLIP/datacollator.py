@@ -126,9 +126,14 @@ class Product2Title:
         inputs['decoder_attention_mask'] = targets.attention_mask
 
         if self.mask_decoder_inputs:
-            # [-1, 0, ...., 10 | lenght of labels]
-            dummy_decoder_inputs = torch.arange(-1, targets.input_ids.size(1)+2)[:targets.input_ids.size(1)]
+            # option1: [-1, 0, ...., 10 | lenght of labels]
+            # dummy_decoder_inputs = torch.arange(-1, targets.input_ids.size(1)+2)[:targets.input_ids.size(1)]
+            # option2: [103 , ...,  103 | lenght of labels]
+            dummy_decoder_inputs = torch.tensor(
+                    self.processor.tokenizer.mask_token_id
+            ).long().repeat(targets.input_ids.size(1))
             inputs['decoder_input_ids'] = dummy_decoder_inputs.repeat((len(labels), 1))
+
 
         return inputs
 
